@@ -1,0 +1,353 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10001 /* TinyExplorersApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10001; };
+		A10002 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10002; };
+		A10003 /* ABCGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10003; };
+		A10004 /* NumberGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10004; };
+		A10005 /* ShapesGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10005; };
+		A10006 /* AnimalGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10006; };
+		A10007 /* MemoryGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10007; };
+		A10008 /* PuzzleGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10008; };
+		A10009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10009; };
+		A10010 /* MathGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10011; };
+		A10011 /* SocialGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10012; };
+		A10012 /* DrawingGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10013; };
+		A10013 /* MusicGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014; };
+		A10014 /* PatternGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10015; };
+		A10015 /* OddOneOutGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10016; };
+		A10016 /* SpeechHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10017; };
+		A10017 /* CountingGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10018; };
+		A10018 /* EmotionsGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10001 /* TinyExplorersApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinyExplorersApp.swift; sourceTree = "<group>"; };
+		B10002 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		B10003 /* ABCGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ABCGameView.swift; sourceTree = "<group>"; };
+		B10004 /* NumberGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberGameView.swift; sourceTree = "<group>"; };
+		B10005 /* ShapesGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapesGameView.swift; sourceTree = "<group>"; };
+		B10006 /* AnimalGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimalGameView.swift; sourceTree = "<group>"; };
+		B10007 /* MemoryGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryGameView.swift; sourceTree = "<group>"; };
+		B10008 /* PuzzleGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PuzzleGameView.swift; sourceTree = "<group>"; };
+		B10009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B10010 /* TinyExplorers.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyExplorers.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10011 /* MathGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathGameView.swift; sourceTree = "<group>"; };
+		B10012 /* SocialGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialGameView.swift; sourceTree = "<group>"; };
+		B10013 /* DrawingGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingGameView.swift; sourceTree = "<group>"; };
+		B10014 /* MusicGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGameView.swift; sourceTree = "<group>"; };
+		B10015 /* PatternGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternGameView.swift; sourceTree = "<group>"; };
+		B10016 /* OddOneOutGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OddOneOutGameView.swift; sourceTree = "<group>"; };
+		B10017 /* SpeechHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechHelper.swift; sourceTree = "<group>"; };
+		B10018 /* CountingGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountingGameView.swift; sourceTree = "<group>"; };
+		B10019 /* EmotionsGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmotionsGameView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10001 = {
+			isa = PBXGroup;
+			children = (
+				D10002 /* TinyExplorers */,
+				D10004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10002 /* TinyExplorers */ = {
+			isa = PBXGroup;
+			children = (
+				B10001 /* TinyExplorersApp.swift */,
+				B10002 /* HomeView.swift */,
+				B10017 /* SpeechHelper.swift */,
+				D10003 /* Games */,
+				B10009 /* Assets.xcassets */,
+			);
+			path = TinyExplorers;
+			sourceTree = "<group>";
+		};
+		D10003 /* Games */ = {
+			isa = PBXGroup;
+			children = (
+				B10003 /* ABCGameView.swift */,
+				B10004 /* NumberGameView.swift */,
+				B10005 /* ShapesGameView.swift */,
+				B10006 /* AnimalGameView.swift */,
+				B10007 /* MemoryGameView.swift */,
+				B10008 /* PuzzleGameView.swift */,
+				B10011 /* MathGameView.swift */,
+				B10012 /* SocialGameView.swift */,
+				B10013 /* DrawingGameView.swift */,
+				B10014 /* MusicGameView.swift */,
+				B10015 /* PatternGameView.swift */,
+				B10016 /* OddOneOutGameView.swift */,
+				B10018 /* CountingGameView.swift */,
+				B10019 /* EmotionsGameView.swift */,
+			);
+			path = Games;
+			sourceTree = "<group>";
+		};
+		D10004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10010 /* TinyExplorers.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10001 /* TinyExplorers */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10003;
+			buildPhases = (
+				C10002 /* Sources */,
+				C10001 /* Frameworks */,
+				C10003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TinyExplorers;
+			productName = TinyExplorers;
+			productReference = B10010 /* TinyExplorers.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		G10001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					E10001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = F10001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D10001;
+			productRefGroup = D10004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10001 /* TinyExplorers */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10009 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10001 /* TinyExplorersApp.swift in Sources */,
+				A10002 /* HomeView.swift in Sources */,
+				A10003 /* ABCGameView.swift in Sources */,
+				A10004 /* NumberGameView.swift in Sources */,
+				A10005 /* ShapesGameView.swift in Sources */,
+				A10006 /* AnimalGameView.swift in Sources */,
+				A10007 /* MemoryGameView.swift in Sources */,
+				A10008 /* PuzzleGameView.swift in Sources */,
+				A10010 /* MathGameView.swift in Sources */,
+				A10011 /* SocialGameView.swift in Sources */,
+				A10012 /* DrawingGameView.swift in Sources */,
+				A10013 /* MusicGameView.swift in Sources */,
+				A10014 /* PatternGameView.swift in Sources */,
+				A10015 /* OddOneOutGameView.swift in Sources */,
+				A10016 /* SpeechHelper.swift in Sources */,
+				A10017 /* CountingGameView.swift in Sources */,
+				A10018 /* EmotionsGameView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F10004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F10005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F10006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Explorers";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tinyexplorers.kidsgames;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		F10007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Explorers";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tinyexplorers.kidsgames;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10001 /* Build configuration list for PBXProject "TinyExplorers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10004 /* Debug */,
+				F10005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10003 /* Build configuration list for PBXNativeTarget "TinyExplorers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10006 /* Debug */,
+				F10007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = G10001 /* Project object */;
+}
