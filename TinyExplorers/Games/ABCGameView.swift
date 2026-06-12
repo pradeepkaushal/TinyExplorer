@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct LetterInfo {
     let word: String
@@ -53,28 +52,31 @@ struct ABCGameView: View {
     @State private var quizLetter: Character? = nil
     @State private var quizOptions: [Character] = []
     @State private var quizScore = 0
+    @State private var quizStreak = 0
     @State private var quizShowResult: Bool? = nil
+    @State private var quizEmojiBob = false
 
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
-    let synthesizer = AVSpeechSynthesizer()
+    private let theme = GameTheme.abc
+
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 7)
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1.0, green: 0.85, blue: 0.85), Color(red: 1.0, green: 0.95, blue: 0.85)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .abc)
 
             VStack(spacing: 12) {
                 // Mode picker
-                Picker("Mode", selection: $gameMode) {
-                    Text("Explore").tag(ABCMode.explore)
-                    Text("Letter Quiz").tag(ABCMode.quiz)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 200)
+                ThemedSegmentedPicker(
+                    items: [
+                        (title: "Explore", value: ABCMode.explore),
+                        (title: "Letter Quiz", value: ABCMode.quiz),
+                    ],
+                    selection: $gameMode,
+                    accent: theme.accent
+                )
                 .onChange(of: gameMode) { _ in
+                    Haptics.tap()
+                    SoundEngine.shared.play(.tap)
                     if gameMode == .quiz { newQuizRound() }
                 }
 
@@ -92,168 +94,243 @@ struct ABCGameView: View {
         }
         .navigationTitle("ABC Letters")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            SpeechHelper.stop()
+        }
     }
 
+    // MARK: - Explore Mode
+
     var exploreView: some View {
-        VStack(spacing: 12) {
-            // Selected letter display
+        VStack(spacing: 0) {
+            Spacer(minLength: 12)
+
+            // Selected letter display: one centered themed card
             if let letter = selectedLetter, let info = letterData[letter] {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 24) {
-                        // Left: Letter + visual
-                        VStack(spacing: 6) {
-                            HStack(spacing: 8) {
-                                Text(String(letter))
-                                    .font(.system(size: 80, weight: .bold, design: .rounded))
-                                    .foregroundStyle(
-                                        LinearGradient(colors: [.red, .orange], startPoint: .top, endPoint: .bottom)
-                                    )
-                                Text(String(letter).lowercased())
-                                    .font(.system(size: 60, weight: .medium, design: .rounded))
-                                    .foregroundColor(.orange.opacity(0.7))
-                            }
-                            .scaleEffect(bounceEffect ? 1.15 : 1.0)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.5), value: bounceEffect)
-
-                            Text("Sounds like: \"\(info.phonics)\"")
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.blue.opacity(0.1)))
-
-                            HStack(spacing: 8) {
-                                Text(info.emoji).font(.system(size: 40))
-                                Text(info.word)
-                                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                                    .foregroundColor(.primary)
-                            }
-
-                            HStack(spacing: 8) {
-                                Text(isVowel(letter) ? "Vowel" : "Consonant")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 3)
-                                    .background(Capsule().fill(isVowel(letter) ? Color.green : Color.blue))
-                                Text("Letter #\(letterPosition(letter))")
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        // Right: More words + fun fact
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("More \(String(letter)) words:")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
-                                .foregroundColor(.purple)
-                            ForEach(info.moreWords, id: \.self) { word in
-                                Text("• \(word)")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                            }
-                            Divider()
-                            HStack(spacing: 6) {
-                                Text("💡").font(.system(size: 18))
-                                Text(info.funFact)
-                                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                                    .foregroundColor(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .frame(width: 260)
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(.white.opacity(0.7))
-                        )
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .frame(height: 230)
-                .animation(.spring(), value: selectedLetter)
+                letterDetailCard(letter: letter, info: info)
+                    .animation(.spring(), value: selectedLetter)
             } else {
-                VStack(spacing: 8) {
-                    Text("🔤")
-                        .font(.system(size: 70))
-                    Text("Tap a letter to learn!")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 230)
+                // Frame keeps roughly the old empty-state height so the
+                // letter grid doesn't jump when a letter gets selected.
+                MascotBubble(theme: theme, text: "Tap a letter to learn!")
+                    .frame(minHeight: 200)
             }
 
+            Spacer(minLength: 20)
+
             // Letter grid
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(letters, id: \.self) { letter in
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(Array(letters.enumerated()), id: \.element) { index, letter in
                     Button(action: { selectLetter(letter) }) {
                         Text(String(letter))
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .font(.system(size: 38, weight: .heavy, design: .rounded))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .aspectRatio(1, contentMode: .fit)
                             .background(
-                                RoundedRectangle(cornerRadius: 14)
+                                RoundedRectangle(cornerRadius: 18)
                                     .fill(letterColor(letter))
-                                    .shadow(radius: selectedLetter == letter ? 6 : 3)
+                                    .shadow(
+                                        color: .black.opacity(0.18),
+                                        radius: selectedLetter == letter ? 6 : 3, y: 2
+                                    )
                             )
                             .scaleEffect(selectedLetter == letter ? 1.15 : 1.0)
                             .animation(.spring(response: 0.3), value: selectedLetter)
                     }
+                    .buttonStyle(SquishyButtonStyle())
+                    .popIn(delay: Double(index) * 0.015)
                 }
             }
-            .padding(.horizontal, 20)
+            .frame(maxWidth: 820)
+            .padding(.horizontal, 24)
 
-            Spacer()
+            Spacer(minLength: 24)
         }
     }
+
+    /// Single centered themed card: big letter + phonics + word on the left,
+    /// more words and a tappable fun fact on the right.
+    private func letterDetailCard(letter: Character, info: LetterInfo) -> some View {
+        HStack(alignment: .center, spacing: 30) {
+            // Left: Letter + word
+            VStack(spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(String(letter))
+                        .font(.system(size: 92, weight: .heavy, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(colors: [theme.accent, .orange], startPoint: .top, endPoint: .bottom)
+                        )
+                    Text(String(letter).lowercased())
+                        .font(.system(size: 68, weight: .bold, design: .rounded))
+                        .foregroundColor(theme.accent.opacity(0.65))
+                }
+                .scaleEffect(bounceEffect ? 1.15 : 1.0)
+                .animation(.spring(response: 0.4, dampingFraction: 0.5), value: bounceEffect)
+
+                Text("Sounds like: \"\(info.phonics)\"")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(theme.accent)
+                            .shadow(color: theme.accent.opacity(0.4), radius: 4, y: 2)
+                    )
+
+                HStack(spacing: 10) {
+                    Text(info.emoji).font(.system(size: 50))
+                    Text(info.word)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+
+                HStack(spacing: 10) {
+                    Text(isVowel(letter) ? "Vowel" : "Consonant")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(isVowel(letter) ? Color.green : Color.blue))
+                    Text("Letter #\(letterPosition(letter))")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            // Right: More words + tappable fun fact
+            VStack(alignment: .leading, spacing: 10) {
+                Text("More \(String(letter)) words:")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .foregroundColor(.purple)
+                ForEach(info.moreWords, id: \.self) { word in
+                    Text("• \(word)")
+                        .font(.system(size: 19, weight: .medium, design: .rounded))
+                }
+
+                Divider()
+
+                // Fun fact is spoken only when the kid taps it
+                Button {
+                    Haptics.tap()
+                    SoundEngine.shared.play(.sparkle)
+                    SpeechHelper.speak(info.funFact)
+                } label: {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("💡").font(.system(size: 22))
+                        Text(info.funFact)
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(theme.accent)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(theme.accent.opacity(0.10))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder(theme.accent.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
+                }
+                .buttonStyle(SquishyButtonStyle(scale: 0.96))
+            }
+            .frame(maxWidth: 340)
+        }
+        .padding(26)
+        .frame(maxWidth: 780)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [.white, theme.accent.opacity(0.12)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(theme.accent.opacity(0.45), lineWidth: 2.5)
+                )
+                .shadow(color: theme.accent.opacity(0.3), radius: 12, y: 6)
+        )
+        .padding(.horizontal, 24)
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    // MARK: - Quiz Mode
 
     var quizView: some View {
-        VStack(spacing: 20) {
-            Text("Score: \(quizScore)")
-                .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundColor(.orange)
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                StarCounterChip(count: quizScore)
+                StreakBadge(streak: quizStreak)
+            }
 
-            if let quiz = quizLetter, let info = letterData[quiz] {
-                VStack(spacing: 16) {
-                    Text("Which letter does \(info.word) start with?")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .multilineTextAlignment(.center)
+            Spacer(minLength: 16)
 
-                    Text(info.emoji)
-                        .font(.system(size: 100))
+            VStack(spacing: 26) {
+                if let quiz = quizLetter, let info = letterData[quiz] {
+                    VStack(spacing: 16) {
+                        Text("Which letter does \(info.word) start with?")
+                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
 
-                    Text(info.word)
-                        .font(.system(size: 32, weight: .semibold, design: .rounded))
-                }
+                        Text(info.emoji)
+                            .font(.system(size: 120))
 
-                HStack(spacing: 24) {
-                    ForEach(quizOptions, id: \.self) { option in
-                        Button(action: { checkQuizAnswer(option) }) {
-                            Text(String(option))
-                                .font(.system(size: 56, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(width: 120, height: 120)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color(red: 0.95, green: 0.4, blue: 0.4))
-                                        .shadow(radius: 6)
-                                )
-                        }
-                        .disabled(quizShowResult != nil)
+                        Text(info.word)
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
                     }
-                }
 
-                if let result = quizShowResult {
-                    Text(result ? "Correct! \(String(quiz)) is for \(info.word)!" : "Try again! \(info.word) starts with \(String(quiz))")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(result ? .green : .orange)
-                        .transition(.scale)
+                    HStack(spacing: 26) {
+                        ForEach(Array(quizOptions.enumerated()), id: \.element) { index, option in
+                            Button(action: { checkQuizAnswer(option) }) {
+                                Text(String(option))
+                                    .font(.system(size: 62, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(width: 132, height: 132)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [theme.accent, theme.accent.opacity(0.75)],
+                                                    startPoint: .top, endPoint: .bottom
+                                                )
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 24)
+                                                    .strokeBorder(.white.opacity(0.5), lineWidth: 2.5)
+                                            )
+                                            .shadow(color: theme.accent.opacity(0.45), radius: 8, y: 4)
+                                    )
+                            }
+                            .buttonStyle(SquishyButtonStyle())
+                            .disabled(quizShowResult != nil)
+                            .popIn(delay: Double(index) * 0.04)
+                        }
+                    }
+
+                    if let result = quizShowResult {
+                        Text(result ? "Correct! \(String(quiz)) is for \(info.word)!" : "Try again! \(info.word) starts with \(String(quiz))")
+                            .font(.system(size: 27, weight: .bold, design: .rounded))
+                            .foregroundColor(result ? .green : .orange)
+                            .transition(.scale)
+                    }
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 24)
         }
     }
+
+    // MARK: - Helpers
 
     func letterColor(_ letter: Character) -> Color {
         if selectedLetter == letter { return .orange }
@@ -270,30 +347,22 @@ struct ABCGameView: View {
         Int(letter.asciiValue! - Character("A").asciiValue!) + 1
     }
 
+    // MARK: - Game logic
+
     func selectLetter(_ letter: Character) {
-        selectedLetter = letter
+        withAnimation(.spring()) { selectedLetter = letter }
         bounceEffect = true
         showConfetti = true
+        Haptics.tap()
+        SoundEngine.shared.playTileNote(letterPosition(letter) - 1)
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { bounceEffect = false }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showConfetti = false }
 
-        speakLetter(letter)
-    }
-
-    func speakLetter(_ letter: Character) {
-        guard let info = letterData[letter] else { return }
-        let moreWordsText = info.moreWords.map { word in
-            // Strip emojis for speech
-            word.components(separatedBy: " ").first ?? word
-        }.joined(separator: ", ")
-        let text = "Capital \(letter), lowercase \(String(letter).lowercased()). \(letter) makes the sound \(info.phonics). \(letter) is for \(info.word). More \(letter) words: \(moreWordsText). \(info.funFact)"
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
+        // Short and snappy — the fun fact only plays if the kid taps it.
+        if let info = letterData[letter] {
+            SpeechHelper.speak("\(letter)! \(info.phonics)! \(letter) is for \(info.word)!")
+        }
     }
 
     func newQuizRound() {
@@ -310,62 +379,43 @@ struct ABCGameView: View {
         quizOptions = opts.shuffled()
 
         if let info = letterData[quiz] {
-            speak("Which letter does \(info.word) start with?")
+            SpeechHelper.speak("Which letter does \(info.word) start with?")
         }
     }
 
     func checkQuizAnswer(_ answer: Character) {
         if answer == quizLetter {
             quizScore += 1
-            withAnimation { quizShowResult = true }
-            if let info = letterData[quizLetter!] {
-                speak("Correct! \(String(quizLetter!)) is for \(info.word)!")
+            StarBank.shared.award(1, to: theme.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
+            withAnimation(.spring()) {
+                quizStreak += 1
+                quizShowResult = true
+            }
+            if quizStreak > 0, quizStreak % 5 == 0 {
+                StarBank.shared.award(1, to: theme.key)
+                quizScore += 1
+                SoundEngine.shared.play(.streak)
+                SpeechHelper.cheer("\(quizStreak) in a row!")
+            } else if let info = letterData[quizLetter!] {
+                SpeechHelper.speak("\(String(quizLetter!)) is for \(info.word)!")
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation { newQuizRound() }
             }
         } else {
-            withAnimation { quizShowResult = false }
-            if let info = letterData[quizLetter!] {
-                speak("\(info.word) starts with \(String(quizLetter!)). Try again!")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation(.spring()) {
+                quizStreak = 0
+                quizShowResult = false
             }
+            SpeechHelper.speak("Oops! Try again!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation { quizShowResult = nil }
             }
         }
-    }
-
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
-    }
-}
-
-struct ConfettiView: View {
-    @State private var animate = false
-
-    var body: some View {
-        ZStack {
-            ForEach(0..<20, id: \.self) { i in
-                Text(["🎉", "⭐", "🌟", "✨", "🎊"][i % 5])
-                    .font(.system(size: CGFloat.random(in: 20...40)))
-                    .offset(
-                        x: CGFloat.random(in: -200...200),
-                        y: animate ? CGFloat.random(in: 200...500) : -100
-                    )
-                    .opacity(animate ? 0 : 1)
-                    .animation(
-                        .easeIn(duration: Double.random(in: 1.0...2.0))
-                        .delay(Double(i) * 0.05),
-                        value: animate
-                    )
-            }
-        }
-        .onAppear { animate = true }
     }
 }
 

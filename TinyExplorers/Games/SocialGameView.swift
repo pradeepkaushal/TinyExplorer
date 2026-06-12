@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct SocialScenario: Identifiable {
     let id = UUID()
@@ -109,11 +108,13 @@ struct SocialGameView: View {
     @State private var currentIndex = 0
     @State private var selectedOption: SocialOption? = nil
     @State private var score = 0
+    @State private var streak = 0
     @State private var answeredCount = 0
     @State private var showExplanation = false
     @State private var shuffledScenarios: [SocialScenario] = []
+    @State private var scenarioSway = false
 
-    let synthesizer = AVSpeechSynthesizer()
+    private let theme = GameTheme.social
 
     var currentScenario: SocialScenario {
         shuffledScenarios.isEmpty ? scenarios[0] : shuffledScenarios[currentIndex % shuffledScenarios.count]
@@ -121,151 +122,243 @@ struct SocialGameView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1.0, green: 0.95, blue: 0.85), Color(red: 0.95, green: 0.88, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .social)
 
-            VStack(spacing: 20) {
+            VStack(spacing: 0) {
                 // Score bar
-                HStack(spacing: 24) {
-                    Label("\(score) Stars", systemImage: "star.fill")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
+                HStack(spacing: 16) {
+                    StarCounterChip(count: score)
+                    StreakBadge(streak: streak)
 
                     Spacer()
 
                     Text("Category: \(currentScenario.category)")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Capsule().fill(.white.opacity(0.7)))
+                        .font(.system(size: 19, weight: .semibold, design: .rounded))
+                        .foregroundColor(theme.accent)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(
+                            Capsule()
+                                .fill(.white.opacity(0.85))
+                                .overlay(Capsule().strokeBorder(theme.accent.opacity(0.35), lineWidth: 1.5))
+                        )
 
                     Spacer()
 
                     Text("Question \(answeredCount + 1)")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .font(.system(size: 19, weight: .semibold, design: .rounded))
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 40)
+                .padding(.top, 16)
 
-                // Scenario card
-                VStack(spacing: 16) {
-                    Text(currentScenario.emoji)
-                        .font(.system(size: 100))
+                Spacer(minLength: 16)
 
-                    Text(currentScenario.situation)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
-
-                    Button("🔊 Read aloud") {
-                        speakText(currentScenario.situation)
+                // Main content, centered in the remaining space
+                VStack(spacing: 22) {
+                    // The bear hosts the question; it steps aside when the
+                    // explanation panel needs the vertical space.
+                    if !showExplanation {
+                        MascotBubble(theme: theme, text: "What would YOU do?", mascotSize: 48)
+                            .transition(.scale.combined(with: .opacity))
                     }
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                }
-                .padding(28)
-                .frame(maxWidth: 700)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(.white.opacity(0.85))
-                        .shadow(radius: 8)
-                )
 
-                // Options
-                VStack(spacing: 14) {
-                    ForEach(currentScenario.options) { option in
-                        Button(action: {
-                            selectOption(option)
-                        }) {
-                            HStack(spacing: 20) {
-                                Text(option.emoji)
-                                    .font(.system(size: 48))
+                    scenarioCard
 
-                                Text(option.text)
-                                    .font(.system(size: 26, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                if selectedOption?.id == option.id {
-                                    Image(systemName: option.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                        .font(.system(size: 30))
-                                        .foregroundColor(option.isCorrect ? .green : .red)
-                                }
-                            }
-                            .padding(22)
-                            .frame(maxWidth: 700)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(backgroundColor(for: option))
-                                    .shadow(radius: 3)
-                            )
+                    VStack(spacing: 16) {
+                        ForEach(Array(currentScenario.options.enumerated()), id: \.element.id) { index, option in
+                            optionCard(option)
+                                .popIn(delay: Double(index) * 0.04)
                         }
-                        .disabled(selectedOption != nil)
+                    }
+
+                    if showExplanation, let option = selectedOption {
+                        explanationPanel(option)
                     }
                 }
+                .padding(.horizontal, 40)
 
-                // Explanation
-                if showExplanation, let option = selectedOption {
-                    VStack(spacing: 8) {
-                        Text(option.isCorrect ? "Great choice!" : "Let's learn from this!")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundColor(option.isCorrect ? .green : .orange)
-
-                        Text(option.explanation)
-                            .font(.system(size: 18, weight: .medium, design: .rounded))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-
-                        Button("Next Question") {
-                            nextQuestion()
-                        }
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 12)
-                        .background(Capsule().fill(Color.blue))
-                        .padding(.top, 8)
-                    }
-                    .padding(20)
-                    .frame(maxWidth: 600)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.white.opacity(0.9))
-                    )
-                    .transition(.scale.combined(with: .opacity))
-                }
-
-                Spacer()
+                Spacer(minLength: 24)
             }
-            .padding(.top, 16)
         }
         .navigationTitle("Social Skills")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             shuffledScenarios = scenarios.shuffled()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                speakText(currentScenario.situation)
+                SpeechHelper.speak(currentScenario.situation)
             }
+        }
+        .onDisappear {
+            SpeechHelper.stop()
         }
     }
 
-    func backgroundColor(for option: SocialOption) -> Color {
-        guard let selected = selectedOption else {
-            return .white.opacity(0.9)
+    // MARK: - Subviews
+
+    private var scenarioCard: some View {
+        VStack(spacing: 14) {
+            Text(currentScenario.emoji)
+                .font(.system(size: 110))
+
+            Text(currentScenario.situation)
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
+            Button {
+                Haptics.tap()
+                SoundEngine.shared.play(.tap)
+                SpeechHelper.speak(currentScenario.situation)
+            } label: {
+                Label("Read aloud", systemImage: "speaker.wave.2.fill")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(theme.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(theme.accent.opacity(0.12)))
+            }
+            .buttonStyle(SquishyButtonStyle())
         }
-        if option.id == selected.id {
-            return option.isCorrect ? Color.green.opacity(0.2) : Color.red.opacity(0.2)
-        }
-        if option.isCorrect {
-            return Color.green.opacity(0.1)
-        }
-        return .white.opacity(0.5)
+        .padding(.vertical, 28)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: 720)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [.white, theme.accent.opacity(0.10)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(theme.accent.opacity(0.4), lineWidth: 2.5)
+                )
+                .shadow(color: theme.accent.opacity(0.25), radius: 12, y: 6)
+        )
     }
+
+    private func optionCard(_ option: SocialOption) -> some View {
+        Button {
+            selectOption(option)
+        } label: {
+            HStack(spacing: 22) {
+                Text(option.emoji)
+                    .font(.system(size: 52))
+
+                Text(option.text)
+                    .font(.system(size: 29, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.leading)
+
+                Spacer()
+
+                if selectedOption?.id == option.id {
+                    Image(systemName: option.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .font(.system(size: 34))
+                        .foregroundColor(option.isCorrect ? .green : .red)
+                        .transition(.scale)
+                }
+            }
+            .padding(.horizontal, 26)
+            .padding(.vertical, 20)
+            .frame(maxWidth: 720)
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(cardFill(for: option))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22)
+                            .strokeBorder(cardBorder(for: option), lineWidth: 2.5)
+                    )
+                    .shadow(color: theme.accent.opacity(0.2), radius: 8, y: 4)
+            )
+        }
+        .buttonStyle(SquishyButtonStyle(scale: 0.95))
+        .disabled(selectedOption != nil)
+    }
+
+    private func explanationPanel(_ option: SocialOption) -> some View {
+        VStack(spacing: 10) {
+            Text(option.isCorrect ? "Great choice!" : "Let's learn from this!")
+                .font(.system(size: 25, weight: .heavy, design: .rounded))
+                .foregroundColor(option.isCorrect ? .green : .orange)
+
+            Text(option.explanation)
+                .font(.system(size: 21, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                Haptics.tap()
+                SoundEngine.shared.play(.pop)
+                nextQuestion()
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Next Question")
+                    Image(systemName: "arrow.right.circle.fill")
+                }
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .padding(.horizontal, 34)
+                .padding(.vertical, 13)
+                .background(
+                    Capsule()
+                        .fill(theme.accent)
+                        .shadow(color: theme.accent.opacity(0.45), radius: 6, y: 3)
+                )
+            }
+            .buttonStyle(SquishyButtonStyle())
+            .padding(.top, 6)
+        }
+        .padding(22)
+        .frame(maxWidth: 640)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(.white.opacity(0.95))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22)
+                        .strokeBorder(
+                            (option.isCorrect ? Color.green : Color.orange).opacity(0.45),
+                            lineWidth: 2.5
+                        )
+                )
+                .shadow(color: theme.accent.opacity(0.2), radius: 10, y: 5)
+        )
+        .transition(.scale.combined(with: .opacity))
+    }
+
+    // MARK: - Styling
+
+    private func cardFill(for option: SocialOption) -> LinearGradient {
+        let base: Color
+        if let selected = selectedOption {
+            if option.id == selected.id {
+                base = option.isCorrect ? Color.green.opacity(0.22) : Color.red.opacity(0.20)
+            } else if option.isCorrect {
+                base = Color.green.opacity(0.12)
+            } else {
+                base = Color.white.opacity(0.5)
+            }
+        } else {
+            base = theme.accent.opacity(0.10)
+        }
+        return LinearGradient(colors: [.white, base], startPoint: .top, endPoint: .bottom)
+    }
+
+    private func cardBorder(for option: SocialOption) -> Color {
+        if let selected = selectedOption {
+            if option.id == selected.id {
+                return option.isCorrect ? .green : .red
+            }
+            if option.isCorrect { return .green.opacity(0.6) }
+            return theme.accent.opacity(0.2)
+        }
+        return theme.accent.opacity(0.45)
+    }
+
+    // MARK: - Game logic
 
     func selectOption(_ option: SocialOption) {
         withAnimation(.spring()) {
@@ -275,9 +368,23 @@ struct SocialGameView: View {
 
         if option.isCorrect {
             score += 1
-            speakText("Great choice! \(option.explanation)")
+            StarBank.shared.award(1, to: theme.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
+            withAnimation(.spring()) { streak += 1 }
+            if streak > 0, streak % 5 == 0 {
+                StarBank.shared.award(1, to: theme.key)
+                score += 1
+                SoundEngine.shared.play(.streak)
+                SpeechHelper.speak("\(streak) in a row!")
+            } else {
+                SpeechHelper.cheer(Encouragement.random())
+            }
         } else {
-            speakText("Let's learn from this. \(option.explanation)")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation(.spring()) { streak = 0 }
+            SpeechHelper.speak(option.explanation)
         }
     }
 
@@ -295,17 +402,8 @@ struct SocialGameView: View {
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            speakText(currentScenario.situation)
+            SpeechHelper.speak(currentScenario.situation)
         }
-    }
-
-    func speakText(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.1
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
     }
 }
 

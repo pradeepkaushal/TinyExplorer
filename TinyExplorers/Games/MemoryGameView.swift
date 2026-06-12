@@ -15,6 +15,7 @@ struct MemoryGameView: View {
     @State private var matchedPairs = 0
     @State private var showWin = false
     @State private var difficulty: Difficulty = .easy
+    @State private var newGamePulse = false
 
     enum Difficulty: String, CaseIterable {
         case easy = "Easy (6)"
@@ -44,23 +45,20 @@ struct MemoryGameView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1.0, green: 0.93, blue: 0.8), Color(red: 1.0, green: 0.85, blue: 0.7)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .memory)
 
             VStack(spacing: 10) {
                 // Controls
                 HStack {
-                    Picker("Difficulty", selection: $difficulty) {
-                        ForEach(Difficulty.allCases, id: \.self) { d in
-                            Text(d.rawValue).tag(d)
-                        }
+                    ThemedSegmentedPicker(
+                        items: Difficulty.allCases.map { (title: $0.rawValue, value: $0) },
+                        selection: $difficulty,
+                        accent: GameTheme.memory.accent
+                    )
+                    .onChange(of: difficulty) { _ in
+                        SoundEngine.shared.play(.tap)
+                        startNewGame()
                     }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 300)
-                    .onChange(of: difficulty) { _ in startNewGame() }
 
                     Spacer()
 
@@ -69,10 +67,21 @@ struct MemoryGameView: View {
                         Label("\(matchedPairs)/\(difficulty.pairCount) Pairs", systemImage: "checkmark.circle")
                     }
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 7)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.85))
+                            .shadow(color: .black.opacity(0.06), radius: 3, y: 2)
+                    )
 
                     Spacer()
 
-                    Button(action: startNewGame) {
+                    Button(action: {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
+                        startNewGame()
+                    }) {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.counterclockwise")
                             Text("New Game")
@@ -81,20 +90,26 @@ struct MemoryGameView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Capsule().fill(Color.orange))
+                        .background(Capsule().fill(GameTheme.memory.accent))
                     }
+                    .buttonStyle(SquishyButtonStyle())
+                    .scaleEffect(newGamePulse ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: newGamePulse)
                 }
                 .padding(.horizontal, 16)
 
-                // Cards grid — fills all remaining space
+                MascotBubble(theme: .memory, text: "Find all the matching pairs!", mascotSize: 44)
+                    .popIn(delay: 0.1)
+
+                // Cards grid — fills all remaining space, centered
                 GeometryReader { geo in
                     let cols = difficulty.columns
                     let rows = (cards.count + cols - 1) / cols
-                    let spacing: CGFloat = 10
+                    let spacing: CGFloat = 12
                     let totalHSpacing = spacing * CGFloat(cols - 1)
                     let totalVSpacing = spacing * CGFloat(rows - 1)
-                    let cardWidth = (geo.size.width - totalHSpacing - 24) / CGFloat(cols)
-                    let cardHeight = (geo.size.height - totalVSpacing - 12) / CGFloat(rows)
+                    let cardWidth = (geo.size.width - totalHSpacing - 32) / CGFloat(cols)
+                    let cardHeight = (geo.size.height - totalVSpacing - 16) / CGFloat(rows)
                     let cardSize = min(cardWidth, cardHeight)
 
                     let gridWidth = cardSize * CGFloat(cols) + totalHSpacing
@@ -106,11 +121,13 @@ struct MemoryGameView: View {
                                 ForEach(0..<cols, id: \.self) { col in
                                     let index = row * cols + col
                                     if index < cards.count {
-                                        CardView(card: cards[index])
-                                            .frame(width: cardSize, height: cardSize)
-                                            .onTapGesture {
-                                                flipCard(at: index)
-                                            }
+                                        Button(action: { flipCard(at: index) }) {
+                                            CardView(card: cards[index])
+                                                .frame(width: cardSize, height: cardSize)
+                                        }
+                                        .buttonStyle(SquishyButtonStyle())
+                                        .popIn(delay: Double(index) * 0.04)
+                                        .id(cards[index].id)
                                     }
                                 }
                             }
@@ -123,15 +140,12 @@ struct MemoryGameView: View {
             .padding(.top, 8)
 
             if showWin {
-                VStack(spacing: 16) {
-                    Text("🎉 You Win! 🎉")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
-
-                    Text("Completed in \(moves) moves!")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                VStack(spacing: 20) {
+                    CelebrationOverlay(message: "You did it in \(moves) moves!")
 
                     Button("Play Again") {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
                         withAnimation { showWin = false }
                         startNewGame()
                     }
@@ -139,17 +153,20 @@ struct MemoryGameView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 36)
                     .padding(.vertical, 14)
-                    .background(Capsule().fill(Color.green))
+                    .background(Capsule().fill(GameTheme.memory.accent))
+                    .buttonStyle(SquishyButtonStyle())
                 }
-                .padding(32)
-                .background(RoundedRectangle(cornerRadius: 24).fill(.white).shadow(radius: 20))
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(10)
             }
         }
         .navigationTitle("Memory Match")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { startNewGame() }
+        .onAppear {
+            startNewGame()
+            newGamePulse = true
+        }
+        .onDisappear { SpeechHelper.stop() }
     }
 
     func startNewGame() {
@@ -168,7 +185,9 @@ struct MemoryGameView: View {
               !cards[index].isFaceUp,
               !cards[index].isMatched else { return }
 
-        withAnimation(.easeInOut(duration: 0.3)) {
+        Haptics.tap()
+        SoundEngine.shared.play(.tap)
+        withAnimation(.easeInOut(duration: 0.35)) {
             cards[index].isFaceUp = true
         }
 
@@ -185,16 +204,23 @@ struct MemoryGameView: View {
                     }
                     firstFlippedIndex = nil
                     isProcessing = false
+                    Haptics.success()
+                    SoundEngine.shared.play(.correct)
 
                     if matchedPairs == difficulty.pairCount {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            StarBank.shared.award(1, to: GameTheme.memory.key)
+                            SoundEngine.shared.play(.win)
+                            SpeechHelper.cheer(Encouragement.random())
                             withAnimation(.spring()) { showWin = true }
                         }
                     }
                 }
             } else {
+                Haptics.error()
+                SoundEngine.shared.play(.wrong)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    withAnimation(.easeInOut(duration: 0.3)) {
+                    withAnimation(.easeInOut(duration: 0.35)) {
                         cards[firstIndex].isFaceUp = false
                         cards[index].isFaceUp = false
                     }
@@ -208,40 +234,104 @@ struct MemoryGameView: View {
     }
 }
 
+/// A proper two-sided flip card: the back is shown at 0° and the face is
+/// pre-rotated 180° so that when the container flips, neither side ever
+/// renders mirrored.
 struct CardView: View {
     let card: MemoryCard
 
+    private var showsFace: Bool { card.isFaceUp || card.isMatched }
+
     var body: some View {
-        ZStack {
-            if card.isFaceUp || card.isMatched {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(card.isMatched ? Color.green.opacity(0.3) : Color.white)
-                    .shadow(radius: 4)
-
-                Text(card.emoji)
-                    .font(.system(size: 56))
-                    .minimumScaleFactor(0.4)
-                    .opacity(card.isMatched ? 0.6 : 1.0)
-            } else {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.orange, Color.red],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(radius: 4)
-
-                Text("❓")
-                    .font(.system(size: 44))
-                    .minimumScaleFactor(0.4)
+        GeometryReader { geo in
+            let s = min(geo.size.width, geo.size.height)
+            ZStack {
+                cardBack(size: s)
+                    .opacity(showsFace ? 0 : 1)
+                cardFace(size: s)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                    .opacity(showsFace ? 1 : 0)
             }
+            .rotation3DEffect(
+                .degrees(showsFace ? 180 : 0),
+                axis: (x: 0, y: 1, z: 0)
+            )
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .rotation3DEffect(
-            .degrees(card.isFaceUp ? 0 : 180),
-            axis: (x: 0, y: 1, z: 0)
-        )
+    }
+
+    // MARK: - Face: white card with a big emoji
+
+    private func cardFace(size s: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(card.isMatched ? GameTheme.memory.accent.opacity(0.12) : Color.white)
+                .shadow(color: GameTheme.memory.accent.opacity(0.3), radius: 6, y: 3)
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    card.isMatched ? Color.green.opacity(0.55) : GameTheme.memory.accent.opacity(0.55),
+                    lineWidth: 2.5
+                )
+            Text(card.emoji)
+                .font(.system(size: s * 0.52))
+                .minimumScaleFactor(0.4)
+                .opacity(card.isMatched ? 0.65 : 1.0)
+        }
+    }
+
+    // MARK: - Back: accent gradient, white "?" badge, sparkle corners
+
+    private func cardBack(size s: CGFloat) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            GameTheme.memory.accent,
+                            Color(red: 0.93, green: 0.40, blue: 0.15),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: GameTheme.memory.accent.opacity(0.4), radius: 6, y: 3)
+
+            // Inner white frame, like the printed border of a real playing card
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.55), lineWidth: 2)
+                .padding(s * 0.07)
+
+            Circle()
+                .fill(Color.white)
+                .frame(width: s * 0.46, height: s * 0.46)
+                .shadow(color: .black.opacity(0.18), radius: 3, y: 2)
+
+            Text("?")
+                .font(.system(size: s * 0.3, weight: .heavy, design: .rounded))
+                .foregroundColor(GameTheme.memory.accent)
+
+            // Sparkles in the corners
+            VStack {
+                HStack {
+                    sparkle(s)
+                    Spacer()
+                    sparkle(s)
+                }
+                Spacer()
+                HStack {
+                    sparkle(s)
+                    Spacer()
+                    sparkle(s)
+                }
+            }
+            .padding(s * 0.11)
+        }
+    }
+
+    private func sparkle(_ s: CGFloat) -> some View {
+        Text("✦")
+            .font(.system(size: max(9, s * 0.11), weight: .bold))
+            .foregroundColor(.white.opacity(0.85))
     }
 }
 

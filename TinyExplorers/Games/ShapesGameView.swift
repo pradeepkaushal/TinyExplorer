@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct ShapeInfo: Identifiable {
     let id = UUID()
@@ -7,6 +6,7 @@ struct ShapeInfo: Identifiable {
     let color: Color
     let shape: AnyShape
     let emoji: String
+    let funFact: String
 }
 
 struct AnyShape: Shape {
@@ -84,22 +84,31 @@ struct HeartShape: Shape {
 
 struct ShapesGameView: View {
     let shapes: [ShapeInfo] = [
-        ShapeInfo(name: "Circle", color: .red, shape: AnyShape(Circle()), emoji: "🔴"),
-        ShapeInfo(name: "Square", color: .blue, shape: AnyShape(Rectangle()), emoji: "🟦"),
-        ShapeInfo(name: "Triangle", color: .green, shape: AnyShape(TriangleShape()), emoji: "📐"),
-        ShapeInfo(name: "Star", color: .yellow, shape: AnyShape(StarShape()), emoji: "⭐"),
-        ShapeInfo(name: "Diamond", color: .purple, shape: AnyShape(DiamondShape()), emoji: "💎"),
-        ShapeInfo(name: "Heart", color: .pink, shape: AnyShape(HeartShape()), emoji: "❤️"),
+        ShapeInfo(name: "Circle", color: .red, shape: AnyShape(Circle()), emoji: "🔴",
+                  funFact: "A circle is perfectly round, just like the sun!"),
+        ShapeInfo(name: "Square", color: .blue, shape: AnyShape(Rectangle()), emoji: "🟦",
+                  funFact: "A square has 4 sides that are all the same!"),
+        ShapeInfo(name: "Triangle", color: .green, shape: AnyShape(TriangleShape()), emoji: "📐",
+                  funFact: "A triangle has 3 sides and 3 pointy corners!"),
+        ShapeInfo(name: "Star", color: .yellow, shape: AnyShape(StarShape()), emoji: "⭐",
+                  funFact: "This star has 5 shiny points, like stars at night!"),
+        ShapeInfo(name: "Diamond", color: .purple, shape: AnyShape(DiamondShape()), emoji: "💎",
+                  funFact: "A diamond is a square balancing on its tippy-toe!"),
+        ShapeInfo(name: "Heart", color: .pink, shape: AnyShape(HeartShape()), emoji: "❤️",
+                  funFact: "Hearts mean love, hugs, and kindness!"),
     ]
 
     @State private var selectedShape: ShapeInfo? = nil
     @State private var targetShape: ShapeInfo? = nil
+    @State private var quizOptions: [ShapeInfo] = []
     @State private var score = 0
+    @State private var streak = 0
     @State private var showCorrect = false
     @State private var showWrong = false
     @State private var gameMode: GameMode = .explore
+    @State private var celebrationMessage = ""
 
-    let synthesizer = AVSpeechSynthesizer()
+    private let theme = GameTheme.shapes
 
     enum GameMode {
         case explore
@@ -108,21 +117,19 @@ struct ShapesGameView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.95, green: 0.85, blue: 1.0), Color(red: 0.85, green: 0.95, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .shapes)
 
-            VStack(spacing: 20) {
+            VStack(spacing: 16) {
                 // Mode picker
-                Picker("Mode", selection: $gameMode) {
-                    Text("Explore").tag(GameMode.explore)
-                    Text("Quiz").tag(GameMode.quiz)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 200)
+                ThemedSegmentedPicker(
+                    items: [(title: "Explore", value: GameMode.explore), (title: "Quiz", value: GameMode.quiz)],
+                    selection: $gameMode,
+                    accent: theme.accent
+                )
+                .padding(.top, 8)
                 .onChange(of: gameMode) { _ in
+                    Haptics.tap()
+                    SoundEngine.shared.play(.tap)
                     if gameMode == .quiz { startQuiz() }
                     selectedShape = nil
                 }
@@ -133,172 +140,282 @@ struct ShapesGameView: View {
                     quizView
                 }
             }
+
+            if showCorrect {
+                CelebrationOverlay(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
         .navigationTitle("Colors & Shapes")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear { SpeechHelper.stop() }
     }
 
+    // MARK: - Explore
+
     var exploreView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
+            Spacer(minLength: 12)
+
             // Display area
-            if let shape = selectedShape {
-                VStack(spacing: 16) {
-                    shape.shape
-                        .fill(shape.color)
-                        .frame(width: 180, height: 180)
-                        .shadow(color: shape.color.opacity(0.5), radius: 10)
-                        .transition(.scale)
+            Group {
+                if let shape = selectedShape {
+                    VStack(spacing: 14) {
+                        shape.shape
+                            .fill(
+                                LinearGradient(
+                                    colors: [shape.color.opacity(0.85), shape.color],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                            .frame(width: 190, height: 190)
+                            .shadow(color: shape.color.opacity(0.5), radius: 12, y: 6)
+                            .modifier(GentleShapePulse())
+                            .transition(.scale)
 
-                    Text(shape.name)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(shape.color)
+                        Text(shape.name)
+                            .font(.system(size: 42, weight: .heavy, design: .rounded))
+                            .foregroundColor(shape.color)
 
-                    Text("This is a \(shape.color.description) \(shape.name.lowercased())!")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
-                        .foregroundColor(.secondary)
+                        Text(shape.funFact)
+                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(.white.opacity(0.75))
+                            )
+                    }
+                    .padding(.vertical, 24)
+                    .padding(.horizontal, 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 28)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.white, theme.accent.opacity(0.12)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 28)
+                                    .stroke(theme.accent.opacity(0.45), lineWidth: 2.5)
+                            )
+                            .shadow(color: theme.accent.opacity(0.3), radius: 12, y: 6)
+                    )
+                    .animation(.spring(), value: selectedShape?.id)
+                } else {
+                    VStack(spacing: 14) {
+                        Text("🟣")
+                            .font(.system(size: 90))
+                            .modifier(GentleShapePulse())
+                        MascotBubble(theme: theme, text: "Tap a shape to explore!")
+                    }
+                    .popIn()
                 }
-                .frame(height: 300)
-                .animation(.spring(), value: selectedShape?.id)
-            } else {
-                VStack {
-                    Text("🟣")
-                        .font(.system(size: 80))
-                    Text("Tap a shape to explore!")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 300)
             }
+            .frame(height: 330)
+
+            Spacer(minLength: 24)
 
             // Shapes grid
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 3), spacing: 20) {
-                ForEach(shapes) { shape in
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 24), count: 3), spacing: 24) {
+                ForEach(Array(shapes.enumerated()), id: \.element.id) { index, shape in
                     Button(action: {
+                        Haptics.tap()
+                        SoundEngine.shared.playTileNote(shapes.firstIndex(where: { $0.id == shape.id }) ?? 0)
                         withAnimation { selectedShape = shape }
-                        speak("This is a \(shape.color.description) \(shape.name)")
+                        SpeechHelper.speak("A \(shape.color.description) \(shape.name.lowercased())!")
                     }) {
-                        VStack(spacing: 10) {
+                        VStack(spacing: 12) {
                             shape.shape
                                 .fill(shape.color)
-                                .frame(width: 110, height: 110)
-                                .shadow(radius: 4)
+                                .frame(width: 120, height: 120)
+                                .shadow(color: shape.color.opacity(0.4), radius: 5, y: 3)
 
                             Text(shape.name)
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
                                 .foregroundColor(.primary)
                         }
-                        .padding(20)
+                        .padding(.vertical, 22)
+                        .frame(maxWidth: .infinity)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.white.opacity(0.8))
-                                .shadow(radius: selectedShape?.id == shape.id ? 6 : 2)
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.white, theme.accent.opacity(selectedShape?.id == shape.id ? 0.22 : 0.1)],
+                                        startPoint: .top, endPoint: .bottom
+                                    )
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 22)
+                                        .stroke(
+                                            theme.accent.opacity(selectedShape?.id == shape.id ? 0.9 : 0.4),
+                                            lineWidth: 2.5
+                                        )
+                                )
+                                .shadow(color: theme.accent.opacity(0.25), radius: 8, y: 4)
                         )
-                        .scaleEffect(selectedShape?.id == shape.id ? 1.1 : 1.0)
+                        .scaleEffect(selectedShape?.id == shape.id ? 1.06 : 1.0)
                         .animation(.spring(), value: selectedShape?.id)
                     }
+                    .buttonStyle(SquishyButtonStyle())
+                    .popIn(delay: Double(index) * 0.04)
                 }
             }
-            .padding(.horizontal, 40)
+            .padding(.horizontal, 60)
 
-            Spacer()
+            Spacer(minLength: 24)
         }
     }
 
+    // MARK: - Quiz
+
     var quizView: some View {
-        VStack(spacing: 24) {
-            Text("Score: \(score)")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundColor(.blue)
+        VStack(spacing: 0) {
+            HStack(spacing: 14) {
+                StarCounterChip(count: score)
+                StreakBadge(streak: streak)
+            }
+            .padding(.top, 4)
+
+            Spacer(minLength: 16)
 
             if let target = targetShape {
-                VStack(spacing: 16) {
+                VStack(spacing: 18) {
                     Text("Find the \(target.name)!")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(size: 38, weight: .heavy, design: .rounded))
                         .foregroundColor(.primary)
 
                     target.shape
-                        .stroke(Color.gray, lineWidth: 3)
-                        .frame(width: 120, height: 120)
+                        .stroke(
+                            theme.accent.opacity(0.7),
+                            style: StrokeStyle(lineWidth: 4, dash: [12, 8])
+                        )
+                        .frame(width: 140, height: 140)
+                        .padding(26)
+                        .background(
+                            RoundedRectangle(cornerRadius: 24)
+                                .fill(.white.opacity(0.7))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 24)
+                                        .stroke(theme.accent.opacity(0.35), lineWidth: 2.5)
+                                )
+                                .shadow(color: theme.accent.opacity(0.2), radius: 8, y: 4)
+                        )
                 }
-                .frame(height: 200)
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 3), spacing: 20) {
-                    ForEach(shapes.shuffled()) { shape in
+                Spacer(minLength: 28)
+
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 24), count: 3), spacing: 24) {
+                    ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, shape in
                         Button(action: {
                             checkAnswer(shape)
                         }) {
                             shape.shape
                                 .fill(shape.color)
-                                .frame(width: 130, height: 130)
-                                .shadow(radius: 4)
-                                .padding(16)
+                                .frame(width: 140, height: 140)
+                                .shadow(color: shape.color.opacity(0.4), radius: 5, y: 3)
+                                .padding(24)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(.white.opacity(0.8))
+                                    RoundedRectangle(cornerRadius: 22)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.white, theme.accent.opacity(0.1)],
+                                                startPoint: .top, endPoint: .bottom
+                                            )
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 22)
+                                                .stroke(theme.accent.opacity(0.4), lineWidth: 2.5)
+                                        )
+                                        .shadow(color: theme.accent.opacity(0.25), radius: 8, y: 4)
                                 )
                         }
+                        .buttonStyle(SquishyButtonStyle())
+                        .popIn(delay: Double(index) * 0.04)
                     }
                 }
-                .padding(.horizontal, 60)
+                .padding(.horizontal, 70)
             }
 
-            if showCorrect {
-                Text("✅ Correct! Great job!")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.green)
-                    .transition(.scale)
+            Group {
+                if showWrong {
+                    Text("❌ Try again!")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .foregroundColor(.red)
+                        .transition(.scale)
+                } else {
+                    Color.clear
+                }
             }
-            if showWrong {
-                Text("❌ Try again!")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundColor(.red)
-                    .transition(.scale)
-            }
+            .frame(height: 60)
 
-            Spacer()
+            Spacer(minLength: 16)
         }
     }
 
     func startQuiz() {
         score = 0
+        streak = 0
+        pickNewTarget()
+    }
+
+    func pickNewTarget() {
         targetShape = shapes.randomElement()
+        quizOptions = shapes.shuffled()
         if let target = targetShape {
-            speak("Find the \(target.name)")
+            SpeechHelper.speak("Find the \(target.name)!")
         }
     }
 
     func checkAnswer(_ shape: ShapeInfo) {
         if shape.name == targetShape?.name {
+            celebrationMessage = Encouragement.random()
+            StarBank.shared.award(1, to: GameTheme.shapes.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
             withAnimation {
                 showCorrect = true
                 score += 1
+                streak += 1
             }
-            speak("Correct! That's a \(shape.name)!")
+            if streak > 0 && streak % 5 == 0 {
+                StarBank.shared.award(1, to: GameTheme.shapes.key)
+                SoundEngine.shared.play(.streak)
+            }
+            SpeechHelper.speak("That's a \(shape.name)!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation {
                     showCorrect = false
-                    targetShape = shapes.randomElement()
                 }
-                if let target = targetShape {
-                    speak("Find the \(target.name)")
-                }
+                pickNewTarget()
             }
         } else {
-            withAnimation { showWrong = true }
-            speak("Try again! That's a \(shape.name)")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation {
+                showWrong = true
+                streak = 0
+            }
+            SpeechHelper.speak("Try again!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 withAnimation { showWrong = false }
             }
         }
     }
+}
 
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
+/// Slow, subtle breathing pulse for the featured shape.
+private struct GentleShapePulse: ViewModifier {
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(pulse ? 1.04 : 1.0)
+            .animation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true), value: pulse)
+            .onAppear { pulse = true }
     }
 }
 

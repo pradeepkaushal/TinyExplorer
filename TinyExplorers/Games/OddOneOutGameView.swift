@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct OddOneOutRound: Identifiable {
     let id = UUID()
@@ -48,13 +47,15 @@ struct OddOneOutGameView: View {
     @State private var shuffledRounds: [OddOneOutRound] = []
     @State private var currentRoundIndex = 0
     @State private var score = 0
+    @State private var streak = 0
     @State private var totalAttempts = 0
     @State private var tappedIndex: Int? = nil
     @State private var showResult: Bool? = nil
     @State private var showExplanation = false
     @State private var shuffledItems: [(item: String, originalIndex: Int)] = []
+    @State private var roundNumber = 0
 
-    let synthesizer = AVSpeechSynthesizer()
+    private let theme = GameTheme.oddOneOut
 
     var currentRound: OddOneOutRound {
         guard !shuffledRounds.isEmpty else { return rounds[0] }
@@ -63,27 +64,23 @@ struct OddOneOutGameView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1.0, green: 0.92, blue: 0.85), Color(red: 0.85, green: 0.92, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .oddOneOut)
 
-            VStack(spacing: 24) {
+            VStack(spacing: 0) {
                 // Score
-                HStack {
-                    Label("\(score) Correct", systemImage: "star.fill")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
+                HStack(spacing: 14) {
+                    StarCounterChip(count: score)
+                    StreakBadge(streak: streak)
 
                     Spacer()
 
                     Text("Category: \(currentRound.category)")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(theme.accent)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Capsule().fill(.white.opacity(0.7)))
+                        .background(Capsule().fill(.white.opacity(0.8)))
+                        .modifier(CategoryChipGlow())
 
                     Spacer()
 
@@ -92,71 +89,110 @@ struct OddOneOutGameView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 40)
+                .padding(.top, 12)
 
-                Text("Find the odd one out!")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                Spacer(minLength: 16)
 
-                Text("Which one doesn't belong with the others?")
-                    .font(.system(size: 22, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
+                VStack(spacing: 26) {
+                    MascotBubble(theme: theme, text: "Find the odd one out!\nWhich one doesn't belong?")
 
-                // Items grid
-                HStack(spacing: 24) {
-                    ForEach(Array(shuffledItems.enumerated()), id: \.offset) { displayIndex, entry in
-                        Button(action: {
-                            checkAnswer(originalIndex: entry.originalIndex, displayIndex: displayIndex)
-                        }) {
-                            Text(entry.item)
-                                .font(.system(size: 90))
-                                .frame(width: 180, height: 180)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 24)
-                                        .fill(cardColor(displayIndex: displayIndex, originalIndex: entry.originalIndex))
-                                        .shadow(radius: tappedIndex == displayIndex ? 10 : 5)
-                                )
-                                .scaleEffect(tappedIndex == displayIndex ? 1.1 : 1.0)
-                                .animation(.spring(response: 0.3), value: tappedIndex)
-                        }
-                        .disabled(showResult != nil)
-                    }
-                }
-
-                // Feedback
-                if let result = showResult {
-                    VStack(spacing: 12) {
-                        Text(result ? "Correct!" : "Not quite!")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundColor(result ? .green : .orange)
-
-                        if showExplanation {
-                            Text(currentRound.explanation)
-                                .font(.system(size: 22, weight: .medium, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-
-                            Button("Next Round") {
-                                nextRound()
+                    // Items grid
+                    HStack(spacing: 26) {
+                        ForEach(Array(shuffledItems.enumerated()), id: \.offset) { displayIndex, entry in
+                            Button(action: {
+                                checkAnswer(originalIndex: entry.originalIndex, displayIndex: displayIndex)
+                            }) {
+                                Text(entry.item)
+                                    .font(.system(size: 96))
+                                    .frame(width: 185, height: 185)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .fill(cardColor(displayIndex: displayIndex, originalIndex: entry.originalIndex))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 24)
+                                                    .stroke(
+                                                        theme.accent.opacity(tappedIndex == displayIndex ? 0.9 : 0.4),
+                                                        lineWidth: 2.5
+                                                    )
+                                            )
+                                            .shadow(
+                                                color: theme.accent.opacity(0.3),
+                                                radius: tappedIndex == displayIndex ? 12 : 8,
+                                                y: 4
+                                            )
+                                    )
+                                    .scaleEffect(tappedIndex == displayIndex ? 1.1 : 1.0)
+                                    .animation(.spring(response: 0.3), value: tappedIndex)
                             }
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 36)
-                            .padding(.vertical, 14)
-                            .background(Capsule().fill(Color.blue))
+                            .buttonStyle(SquishyButtonStyle())
+                            .disabled(showResult != nil)
+                            .popIn(delay: Double(displayIndex) * 0.04)
                         }
                     }
-                    .padding(24)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(.white.opacity(0.9))
-                            .shadow(radius: 6)
-                    )
-                    .transition(.scale.combined(with: .opacity))
+                    .id(roundNumber)
+
+                    // Feedback
+                    Group {
+                        if let result = showResult {
+                            VStack(spacing: 12) {
+                                Text(result ? "Correct!" : "Not quite!")
+                                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                                    .foregroundColor(result ? .green : .orange)
+
+                                if showExplanation {
+                                    Text(currentRound.explanation)
+                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.primary.opacity(0.75))
+                                        .multilineTextAlignment(.center)
+
+                                    Button("Next Round") {
+                                        Haptics.tap()
+                                        SoundEngine.shared.play(.tap)
+                                        nextRound()
+                                    }
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 40)
+                                    .padding(.vertical, 15)
+                                    .background(
+                                        Capsule()
+                                            .fill(theme.accent)
+                                            .shadow(color: theme.accent.opacity(0.5), radius: 6, y: 3)
+                                    )
+                                    .buttonStyle(SquishyButtonStyle())
+                                }
+                            }
+                            .padding(28)
+                            .frame(minWidth: 380)
+                            .background(
+                                RoundedRectangle(cornerRadius: 24)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.white, theme.accent.opacity(0.12)],
+                                            startPoint: .top, endPoint: .bottom
+                                        )
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .stroke(theme.accent.opacity(0.45), lineWidth: 2.5)
+                                    )
+                                    .shadow(color: theme.accent.opacity(0.3), radius: 10, y: 5)
+                            )
+                            .transition(.scale.combined(with: .opacity))
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(minHeight: 210)
                 }
 
-                Spacer()
+                Spacer(minLength: 16)
             }
-            .padding(.top, 16)
+
+            if showResult == true {
+                ConfettiView()
+                    .zIndex(5)
+            }
         }
         .navigationTitle("Odd One Out")
         .navigationBarTitleDisplayMode(.inline)
@@ -164,11 +200,12 @@ struct OddOneOutGameView: View {
             shuffledRounds = rounds.shuffled()
             setupRound()
         }
+        .onDisappear { SpeechHelper.stop() }
     }
 
     func cardColor(displayIndex: Int, originalIndex: Int) -> Color {
         guard let result = showResult, tappedIndex != nil else {
-            return .white.opacity(0.9)
+            return .white.opacity(0.92)
         }
         if originalIndex == currentRound.oddIndex {
             return result ? Color.green.opacity(0.3) : Color.red.opacity(0.2)
@@ -180,10 +217,11 @@ struct OddOneOutGameView: View {
         showResult = nil
         showExplanation = false
         tappedIndex = nil
+        roundNumber += 1
         shuffledItems = currentRound.items.enumerated().map { (item: $1, originalIndex: $0) }.shuffled()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            speak("Which one doesn't belong? Find the odd one out!")
+            SpeechHelper.speak("Find the odd one out!")
         }
     }
 
@@ -191,12 +229,27 @@ struct OddOneOutGameView: View {
         tappedIndex = displayIndex
 
         if originalIndex == currentRound.oddIndex {
-            score += 1
-            withAnimation { showResult = true }
-            speak("Correct! \(currentRound.explanation)")
+            StarBank.shared.award(1, to: GameTheme.oddOneOut.key)
+            Haptics.success()
+            SoundEngine.shared.play(.win)
+            withAnimation {
+                showResult = true
+                score += 1
+                streak += 1
+            }
+            if streak > 0 && streak % 5 == 0 {
+                StarBank.shared.award(1, to: GameTheme.oddOneOut.key)
+                SoundEngine.shared.play(.streak)
+            }
+            SpeechHelper.speak(currentRound.explanation)
         } else {
-            withAnimation { showResult = false }
-            speak("Not that one. Try to find which one is different!")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation {
+                showResult = false
+                streak = 0
+            }
+            SpeechHelper.speak("Try again!")
         }
 
         withAnimation(.easeIn.delay(0.5)) {
@@ -215,14 +268,17 @@ struct OddOneOutGameView: View {
             setupRound()
         }
     }
+}
 
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
+/// Soft, repeating breathing pulse for the category chip.
+private struct CategoryChipGlow: ViewModifier {
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(pulse ? 1.05 : 1.0)
+            .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: pulse)
+            .onAppear { pulse = true }
     }
 }
 

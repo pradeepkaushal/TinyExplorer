@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct PatternGameView: View {
     let patternSets: [[(emoji: String, name: String)]] = [
@@ -19,108 +18,152 @@ struct PatternGameView: View {
 
     @State private var currentPatternIndex = 0
     @State private var score = 0
+    @State private var streak = 0
     @State private var totalAttempts = 0
     @State private var showResult: Bool? = nil
     @State private var options: [(emoji: String, name: String)] = []
     @State private var correctAnswer: (emoji: String, name: String) = ("", "")
+    @State private var displayedPattern: [(emoji: String, name: String)] = []
     @State private var shuffledPatterns: [[( emoji: String, name: String)]] = []
+    @State private var celebrationMessage = ""
+    @State private var roundNumber = 0
 
-    let synthesizer = AVSpeechSynthesizer()
+    private let theme = GameTheme.pattern
 
     var currentPattern: [(emoji: String, name: String)] {
         guard !shuffledPatterns.isEmpty else { return patternSets[0] }
         return shuffledPatterns[currentPatternIndex % shuffledPatterns.count]
     }
 
+    /// Pattern tiles shrink a little when the pattern grows longer.
+    private var tileSize: CGFloat {
+        displayedPattern.count >= 6 ? 92 : 108
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.85, green: 1.0, blue: 0.95), Color(red: 0.95, green: 0.9, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .pattern)
 
-            VStack(spacing: 28) {
+            VStack(spacing: 0) {
                 // Score
-                HStack(spacing: 32) {
-                    Label("\(score) Correct", systemImage: "star.fill")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(.orange)
+                HStack(spacing: 14) {
+                    StarCounterChip(count: score)
+                    StreakBadge(streak: streak)
 
                     Spacer()
 
                     Text("Pattern \(totalAttempts + 1)")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(theme.accent)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(.white.opacity(0.8)))
                 }
-                .padding(.horizontal, 60)
+                .padding(.horizontal, 50)
+                .padding(.top, 12)
 
-                Text("What comes next?")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
+                Spacer(minLength: 16)
 
-                // Pattern display
-                HStack(spacing: 16) {
-                    ForEach(0..<currentPattern.count, id: \.self) { i in
-                        Text(currentPattern[i].emoji)
-                            .font(.system(size: 70))
-                            .frame(width: 100, height: 100)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(.white.opacity(0.8))
-                                    .shadow(radius: 3)
-                            )
-                    }
+                VStack(spacing: 30) {
+                    MascotBubble(theme: theme, text: "What comes next?")
 
-                    // Mystery slot
-                    Text("❓")
-                        .font(.system(size: 70))
-                        .frame(width: 100, height: 100)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.yellow.opacity(0.3))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(style: StrokeStyle(lineWidth: 3, dash: [10]))
-                                        .foregroundColor(.orange)
-                                )
-                        )
-                }
-
-                // Answer options
-                Text("Choose the right answer:")
-                    .font(.system(size: 22, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
-
-                HStack(spacing: 24) {
-                    ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                        Button(action: {
-                            checkAnswer(option)
-                        }) {
-                            Text(option.emoji)
-                                .font(.system(size: 80))
-                                .frame(width: 140, height: 140)
+                    // Pattern display
+                    HStack(spacing: 14) {
+                        ForEach(0..<displayedPattern.count, id: \.self) { i in
+                            Text(displayedPattern[i].emoji)
+                                .font(.system(size: tileSize * 0.62))
+                                .frame(width: tileSize, height: tileSize)
                                 .background(
                                     RoundedRectangle(cornerRadius: 20)
-                                        .fill(.white)
-                                        .shadow(radius: 6)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [.white, theme.accent.opacity(0.1)],
+                                                startPoint: .top, endPoint: .bottom
+                                            )
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(theme.accent.opacity(0.35), lineWidth: 2.5)
+                                        )
+                                        .shadow(color: theme.accent.opacity(0.2), radius: 6, y: 3)
                                 )
+                                .popIn(delay: Double(i) * 0.04)
                         }
-                        .disabled(showResult != nil)
+
+                        // Mystery slot
+                        Text("❓")
+                            .font(.system(size: tileSize * 0.62))
+                            .frame(width: tileSize, height: tileSize)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(theme.accent.opacity(0.16))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(style: StrokeStyle(lineWidth: 3, dash: [10]))
+                                            .foregroundColor(theme.accent)
+                                    )
+                            )
+                            .modifier(MysteryTileWobble())
+                            .popIn(delay: Double(displayedPattern.count) * 0.04)
                     }
+                    .id(roundNumber)
+
+                    // Answer options
+                    Text("Choose the right answer:")
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 30) {
+                        ForEach(Array(options.enumerated()), id: \.offset) { index, option in
+                            Button(action: {
+                                checkAnswer(option)
+                            }) {
+                                Text(option.emoji)
+                                    .font(.system(size: 92))
+                                    .frame(width: 165, height: 165)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 24)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [.white, theme.accent.opacity(0.12)],
+                                                    startPoint: .top, endPoint: .bottom
+                                                )
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 24)
+                                                    .stroke(theme.accent.opacity(0.45), lineWidth: 2.5)
+                                            )
+                                            .shadow(color: theme.accent.opacity(0.3), radius: 10, y: 5)
+                                    )
+                            }
+                            .buttonStyle(SquishyButtonStyle())
+                            .disabled(showResult != nil)
+                            .popIn(delay: 0.15 + Double(index) * 0.04)
+                        }
+                    }
+                    .id(roundNumber)
+
+                    // Feedback
+                    Group {
+                        if showResult == false {
+                            Text("Not quite. Look at the pattern again!")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.orange)
+                                .transition(.scale.combined(with: .opacity))
+                        } else {
+                            Color.clear
+                        }
+                    }
+                    .frame(height: 44)
                 }
 
-                // Feedback
-                if let result = showResult {
-                    Text(result ? "Correct! Great pattern spotting!" : "Not quite. Look at the pattern again!")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(result ? .green : .orange)
-                        .transition(.scale.combined(with: .opacity))
-                }
-
-                Spacer()
+                Spacer(minLength: 24)
             }
-            .padding(.top, 16)
+
+            if showResult == true {
+                CelebrationOverlay(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
         .navigationTitle("Pattern Fun")
         .navigationBarTitleDisplayMode(.inline)
@@ -128,17 +171,22 @@ struct PatternGameView: View {
             shuffledPatterns = patternSets.shuffled()
             setupRound()
         }
+        .onDisappear { SpeechHelper.stop() }
     }
 
     func setupRound() {
         showResult = nil
-        let pattern = currentPattern
+        roundNumber += 1
+        let base = currentPattern
 
-        // The answer is the next in the repeating pattern
-        // Pattern repeats every N items, find the cycle
-        let cycleLength = findCycleLength(pattern)
-        let nextIndex = pattern.count % cycleLength
-        correctAnswer = pattern[nextIndex]
+        // The answer is the next in the repeating pattern.
+        let cycleLength = findCycleLength(base)
+
+        // Patterns get longer as the player answers more correctly:
+        // 4 tiles to start, 5 after 3 correct, 6 after 6 correct.
+        let length = 4 + min(score / 3, 2)
+        displayedPattern = (0..<length).map { base[$0 % cycleLength] }
+        correctAnswer = base[length % cycleLength]
 
         // Generate wrong options
         let allEmojis: [(emoji: String, name: String)] = [
@@ -158,7 +206,7 @@ struct PatternGameView: View {
         options = opts.shuffled()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            speak("What comes next in the pattern?")
+            SpeechHelper.speak("What comes next?")
         }
     }
 
@@ -180,9 +228,20 @@ struct PatternGameView: View {
         totalAttempts += 1
 
         if option.emoji == correctAnswer.emoji {
-            score += 1
-            withAnimation { showResult = true }
-            speak("Correct! The next one is \(correctAnswer.name)!")
+            celebrationMessage = Encouragement.random()
+            StarBank.shared.award(1, to: GameTheme.pattern.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
+            withAnimation {
+                showResult = true
+                score += 1
+                streak += 1
+            }
+            if streak > 0 && streak % 5 == 0 {
+                StarBank.shared.award(1, to: GameTheme.pattern.key)
+                SoundEngine.shared.play(.streak)
+            }
+            SpeechHelper.speak("Yes, it's the \(correctAnswer.name)!")
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation {
@@ -195,21 +254,29 @@ struct PatternGameView: View {
                 }
             }
         } else {
-            withAnimation { showResult = false }
-            speak("Try again! Look carefully at the pattern.")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation {
+                showResult = false
+                streak = 0
+            }
+            SpeechHelper.speak("Try again!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation { showResult = nil }
             }
         }
     }
+}
 
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
+/// Gentle, repeating ±4° wobble for the mystery "?" tile.
+private struct MysteryTileWobble: ViewModifier {
+    @State private var wobble = false
+
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(.degrees(wobble ? 4 : -4))
+            .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: wobble)
+            .onAppear { wobble = true }
     }
 }
 

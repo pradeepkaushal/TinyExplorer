@@ -12,36 +12,69 @@ struct PuzzlePiece: Identifiable, Equatable {
 }
 
 struct PuzzleGameView: View {
+    enum PuzzleSize: String, CaseIterable {
+        case easy = "Easy (6)"
+        case medium = "Medium (8)"
+        case hard = "Hard (12)"
+
+        var count: Int {
+            switch self {
+            case .easy: return 6
+            case .medium: return 8
+            case .hard: return 12
+            }
+        }
+
+        var columns: Int {
+            switch self {
+            case .easy: return 3
+            case .medium: return 4
+            case .hard: return 6
+            }
+        }
+
+        var maxSlotSize: CGFloat {
+            switch self {
+            case .easy: return 150
+            case .medium: return 125
+            case .hard: return 100
+            }
+        }
+    }
+
+    // 12 emojis per theme so every difficulty has enough pieces.
     let puzzleThemes: [(name: String, emojis: [String])] = [
-        ("Farm Animals", ["🐄", "🐔", "🐷", "🐑", "🐴", "🐰"]),
-        ("Sea Creatures", ["🐟", "🐙", "🦀", "🐳", "🦈", "🐠"]),
-        ("Fruits", ["🍎", "🍊", "🍋", "🍇", "🍓", "🍌"]),
-        ("Vehicles", ["🚗", "🚌", "🚂", "✈️", "🚁", "🚀"]),
-        ("Weather", ["☀️", "🌧️", "⛈️", "🌈", "❄️", "🌤️"]),
-        ("Food", ["🍕", "🍔", "🌮", "🍩", "🍪", "🧁"]),
+        ("Farm Animals", ["🐄", "🐔", "🐷", "🐑", "🐴", "🐰", "🐐", "🦆", "🦃", "🐕", "🐈", "🐭"]),
+        ("Sea Creatures", ["🐟", "🐙", "🦀", "🐳", "🦈", "🐠", "🐬", "🦞", "🐡", "🦑", "🐚", "🦭"]),
+        ("Fruits", ["🍎", "🍊", "🍋", "🍇", "🍓", "🍌", "🍉", "🍑", "🍍", "🥝", "🍒", "🥭"]),
+        ("Vehicles", ["🚗", "🚌", "🚂", "✈️", "🚁", "🚀", "🚜", "🚒", "🛵", "🚲", "⛵", "🚕"]),
+        ("Weather", ["☀️", "🌧️", "⛈️", "🌈", "❄️", "🌤️", "🌪️", "⚡", "🌙", "💨", "🌊", "🌫️"]),
+        ("Food", ["🍕", "🍔", "🌮", "🍩", "🍪", "🧁", "🍦", "🥨", "🍿", "🥞", "🍝", "🌭"]),
     ]
 
     @State private var currentThemeIndex = 0
+    @State private var puzzleSize: PuzzleSize = .easy
     @State private var pieces: [PuzzlePiece] = []
     @State private var slots: [PuzzlePiece?] = Array(repeating: nil, count: 6)
     @State private var selectedPieceId: UUID? = nil
     @State private var completed = false
     @State private var score = 0
     @State private var showWrongFeedback = false
+    @State private var nextThemePulse = false
 
     var currentTheme: (name: String, emojis: [String]) {
         puzzleThemes[currentThemeIndex]
     }
 
+    var currentEmojis: [String] {
+        Array(currentTheme.emojis.prefix(puzzleSize.count))
+    }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.9, green: 0.95, blue: 1.0), Color(red: 0.95, green: 0.9, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .puzzle)
 
-            VStack(spacing: 24) {
+            VStack(spacing: 12) {
                 // Header
                 HStack {
                     Text("Theme: \(currentTheme.name)")
@@ -49,13 +82,15 @@ struct PuzzleGameView: View {
 
                     Spacer()
 
-                    Text("Score: \(score)")
-                        .font(.system(size: 22, weight: .semibold, design: .rounded))
-                        .foregroundColor(.purple)
+                    StarCounterChip(count: score)
 
                     Spacer()
 
-                    Button(action: nextTheme) {
+                    Button(action: {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
+                        nextTheme()
+                    }) {
                         HStack {
                             Text("Next Theme")
                             Image(systemName: "arrow.right.circle.fill")
@@ -64,122 +99,81 @@ struct PuzzleGameView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 10)
-                        .background(Capsule().fill(Color.purple))
+                        .background(Capsule().fill(GameTheme.puzzle.accent))
                     }
+                    .buttonStyle(SquishyButtonStyle())
                 }
                 .padding(.horizontal, 40)
 
-                Text(selectedPieceId != nil ? "Now tap the matching spot above!" : "Tap a piece below, then tap its matching spot!")
-                    .font(.system(size: 20, weight: .medium, design: .rounded))
-                    .foregroundColor(selectedPieceId != nil ? .blue : .secondary)
-                    .animation(.easeInOut, value: selectedPieceId)
+                ThemedSegmentedPicker(
+                    items: PuzzleSize.allCases.map { (title: $0.rawValue, value: $0) },
+                    selection: $puzzleSize,
+                    accent: GameTheme.puzzle.accent
+                )
+                .onChange(of: puzzleSize) { _ in
+                    SoundEngine.shared.play(.tap)
+                    resetPuzzle()
+                }
 
-                // Target slots
-                HStack(spacing: 16) {
-                    ForEach(0..<6, id: \.self) { slotIndex in
-                        Button(action: {
-                            tapSlot(slotIndex)
-                        }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(slots[slotIndex] != nil ? Color.green.opacity(0.2) : Color.white.opacity(0.5))
-                                    .frame(maxWidth: .infinity)
-                                    .aspectRatio(1, contentMode: .fit)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(
-                                                style: StrokeStyle(lineWidth: 2, dash: slots[slotIndex] != nil ? [] : [8])
-                                            )
-                                            .foregroundColor(slots[slotIndex] != nil ? .green : (selectedPieceId != nil ? .blue : .gray))
-                                    )
+                // Main play area — vertically centered in the remaining space
+                GeometryReader { geo in
+                    let spacing: CGFloat = 14
+                    let cols = CGFloat(puzzleSize.columns)
+                    let widthLimit = (geo.size.width - 64 - spacing * (cols - 1)) / cols
+                    let heightLimit = (geo.size.height - 210) / 4 // mascot bubble + 2 slot rows + 2 tray rows
+                    let slotSize = max(64, min(puzzleSize.maxSlotSize, widthLimit, heightLimit))
 
-                                if let piece = slots[slotIndex] {
-                                    Text(piece.emoji)
-                                        .font(.system(size: 64))
-                                        .transition(.scale)
-                                } else {
-                                    Text(currentTheme.emojis[slotIndex])
-                                        .font(.system(size: 64))
-                                        .opacity(0.2)
-                                }
-                            }
+                    VStack(spacing: 22) {
+                        MascotBubble(
+                            theme: .puzzle,
+                            text: selectedPieceId != nil
+                                ? "Now tap the matching spot above!"
+                                : "Tap a piece below, then tap its matching spot!",
+                            mascotSize: 48
+                        )
+                        .animation(.easeInOut, value: selectedPieceId)
+
+                        slotGrid(slotSize: slotSize, spacing: spacing)
+
+                        pieceTray(slotSize: slotSize, spacing: spacing)
+
+                        if showWrongFeedback {
+                            Text("Hmm, try a different spot!")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.orange)
+                                .transition(.scale.combined(with: .opacity))
                         }
-                        .disabled(slots[slotIndex] != nil)
-                    }
-                }
-                .padding(.horizontal, 40)
 
-                Divider()
-                    .padding(.horizontal, 60)
-
-                // Available pieces
-                HStack(spacing: 20) {
-                    ForEach(pieces.filter({ $0.currentSlot == nil })) { piece in
                         Button(action: {
-                            withAnimation(.spring(response: 0.3)) {
-                                if selectedPieceId == piece.id {
-                                    selectedPieceId = nil
-                                } else {
-                                    selectedPieceId = piece.id
-                                }
-                            }
+                            Haptics.tap()
+                            SoundEngine.shared.play(.tap)
+                            resetPuzzle()
                         }) {
-                            Text(piece.emoji)
-                                .font(.system(size: 64))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 120)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(selectedPieceId == piece.id ? Color.blue.opacity(0.2) : Color.white)
-                                        .shadow(
-                                            color: selectedPieceId == piece.id ? .blue.opacity(0.5) : .purple.opacity(0.3),
-                                            radius: selectedPieceId == piece.id ? 10 : 6
-                                        )
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color.blue, lineWidth: selectedPieceId == piece.id ? 3 : 0)
-                                )
-                                .scaleEffect(selectedPieceId == piece.id ? 1.1 : 1.0)
+                            HStack {
+                                Image(systemName: "arrow.counterclockwise")
+                                Text("Reset Puzzle")
+                            }
+                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Capsule().fill(GameTheme.puzzle.accent))
                         }
+                        .buttonStyle(SquishyButtonStyle())
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(.horizontal, 40)
-
-                if showWrongFeedback {
-                    Text("Hmm, try a different spot!")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(.orange)
-                        .transition(.scale.combined(with: .opacity))
-                }
-
-                // Reset button
-                Button(action: resetPuzzle) {
-                    HStack {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("Reset Puzzle")
-                    }
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Capsule().fill(Color.blue))
-                }
-
-                Spacer()
             }
             .padding(.top, 16)
+            .padding(.bottom, 8)
 
             if completed {
-                VStack(spacing: 16) {
-                    Text("🧩 Puzzle Complete! 🧩")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundColor(.purple)
-
-                    Text("All pieces matched correctly!")
-                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                VStack(spacing: 20) {
+                    CelebrationOverlay(message: "Puzzle Complete!", emoji: "🧩")
 
                     Button("Next Puzzle") {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
                         withAnimation { completed = false }
                         nextTheme()
                     }
@@ -187,24 +181,120 @@ struct PuzzleGameView: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 40)
                     .padding(.vertical, 16)
-                    .background(Capsule().fill(Color.green))
+                    .background(Capsule().fill(GameTheme.puzzle.accent))
+                    .buttonStyle(SquishyButtonStyle())
                 }
-                .padding(40)
-                .background(RoundedRectangle(cornerRadius: 24).fill(.white).shadow(radius: 20))
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(10)
             }
         }
         .navigationTitle("Puzzle Time")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { resetPuzzle() }
+        .onAppear {
+            resetPuzzle()
+            nextThemePulse = true
+        }
+        .onDisappear { SpeechHelper.stop() }
     }
 
+    // MARK: - Subviews
+
+    private func slotGrid(slotSize: CGFloat, spacing: CGFloat) -> some View {
+        let columns = Array(
+            repeating: GridItem(.fixed(slotSize), spacing: spacing),
+            count: puzzleSize.columns
+        )
+        return LazyVGrid(columns: columns, spacing: spacing) {
+            ForEach(slots.indices, id: \.self) { slotIndex in
+                Button(action: { tapSlot(slotIndex) }) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(
+                                slots[slotIndex] != nil
+                                    ? Color.green.opacity(0.18)
+                                    : GameTheme.puzzle.accent.opacity(0.08)
+                            )
+                            .shadow(color: GameTheme.puzzle.accent.opacity(0.15), radius: 5, y: 2)
+
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(
+                                style: StrokeStyle(lineWidth: 2.5, dash: slots[slotIndex] != nil ? [] : [9])
+                            )
+                            .foregroundColor(
+                                slots[slotIndex] != nil
+                                    ? .green
+                                    : GameTheme.puzzle.accent.opacity(selectedPieceId != nil ? 0.9 : 0.45)
+                            )
+
+                        if let piece = slots[slotIndex] {
+                            Text(piece.emoji)
+                                .font(.system(size: slotSize * 0.62))
+                                .transition(.scale)
+                        } else if slotIndex < currentEmojis.count {
+                            Text(currentEmojis[slotIndex])
+                                .font(.system(size: slotSize * 0.62))
+                                .opacity(0.18)
+                        }
+                    }
+                    .frame(width: slotSize, height: slotSize)
+                }
+                .buttonStyle(SquishyButtonStyle())
+                .disabled(slots[slotIndex] != nil)
+                .popIn(delay: Double(slotIndex) * 0.04)
+            }
+        }
+    }
+
+    private func pieceTray(slotSize: CGFloat, spacing: CGFloat) -> some View {
+        let columns = Array(
+            repeating: GridItem(.fixed(slotSize), spacing: spacing),
+            count: puzzleSize.columns
+        )
+        return LazyVGrid(columns: columns, spacing: spacing) {
+            ForEach(Array(pieces.filter({ $0.currentSlot == nil }).enumerated()), id: \.element.id) { trayIndex, piece in
+                let isSelected = selectedPieceId == piece.id
+                Button(action: {
+                    Haptics.tap()
+                    SoundEngine.shared.play(.tap)
+                    withAnimation(.spring(response: 0.3)) {
+                        selectedPieceId = isSelected ? nil : piece.id
+                    }
+                }) {
+                    Text(piece.emoji)
+                        .font(.system(size: slotSize * 0.6))
+                        .frame(width: slotSize, height: slotSize)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(isSelected ? GameTheme.puzzle.accent.opacity(0.18) : Color.white)
+                                .shadow(
+                                    color: GameTheme.puzzle.accent.opacity(isSelected ? 0.5 : 0.25),
+                                    radius: isSelected ? 10 : 6,
+                                    y: 3
+                                )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(
+                                    GameTheme.puzzle.accent.opacity(isSelected ? 1.0 : 0.35),
+                                    lineWidth: isSelected ? 3 : 2.5
+                                )
+                        )
+                        .scaleEffect(isSelected ? 1.08 : 1.0)
+                }
+                .buttonStyle(SquishyButtonStyle())
+                .popIn(delay: Double(trayIndex) * 0.04)
+            }
+        }
+    }
+
+    // MARK: - Game logic
+
     func resetPuzzle() {
-        pieces = currentTheme.emojis.enumerated().map { index, emoji in
+        let emojis = currentEmojis
+        pieces = emojis.enumerated().map { index, emoji in
             PuzzlePiece(emoji: emoji, correctSlot: index)
         }.shuffled()
-        slots = Array(repeating: nil, count: 6)
+        slots = Array(repeating: nil, count: emojis.count)
         selectedPieceId = nil
         completed = false
     }
@@ -228,13 +318,20 @@ struct PuzzleGameView: View {
                 selectedPieceId = nil
             }
             score += 10
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
 
             if slots.allSatisfy({ $0 != nil }) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    StarBank.shared.award(1, to: GameTheme.puzzle.key)
+                    SoundEngine.shared.play(.win)
+                    SpeechHelper.cheer(Encouragement.random())
                     withAnimation(.spring()) { completed = true }
                 }
             }
         } else {
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
             withAnimation { showWrongFeedback = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 withAnimation { showWrongFeedback = false }

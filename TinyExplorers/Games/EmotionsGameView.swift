@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct Emotion: Identifiable {
     let id = UUID()
@@ -103,14 +102,18 @@ struct EmotionsGameView: View {
     @State private var selectedEmotion: Emotion? = nil
     @State private var gameMode: EmotionMode = .explore
     @State private var bounceEmoji = false
+    @State private var headerFacesPulse = false
 
     // Quiz state
     @State private var quizEmotion: Emotion? = nil
     @State private var quizOptions: [Emotion] = []
     @State private var quizScore = 0
     @State private var quizTotal = 0
+    @State private var quizStreak = 0
     @State private var quizResult: Bool? = nil
     @State private var quizType: QuizType = .nameToFace
+
+    private let theme = GameTheme.emotions
 
     enum EmotionMode: String, CaseIterable {
         case explore = "Explore"
@@ -124,27 +127,22 @@ struct EmotionsGameView: View {
         case situationToEmotion // "Your friend took your toy. How do you feel?"
     }
 
-    let synthesizer = AVSpeechSynthesizer()
-
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 4)
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: 4)
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 1.0, green: 0.92, blue: 0.85), Color(red: 0.88, green: 0.85, blue: 1.0)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .emotions)
 
             VStack(spacing: 10) {
-                Picker("Mode", selection: $gameMode) {
-                    ForEach(EmotionMode.allCases, id: \.self) { m in
-                        Text(m.rawValue).tag(m)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 60)
+                ThemedSegmentedPicker(
+                    items: EmotionMode.allCases.map { (title: $0.rawValue, value: $0) },
+                    selection: $gameMode,
+                    accent: theme.accent
+                )
+                .padding(.top, 8)
                 .onChange(of: gameMode) { _ in
+                    Haptics.tap()
+                    SoundEngine.shared.play(.tap)
                     if gameMode == .quiz { newQuizRound() }
                     if gameMode == .mirror { startMirror() }
                 }
@@ -155,262 +153,356 @@ struct EmotionsGameView: View {
                 case .mirror: mirrorView
                 }
             }
+
+            if gameMode == .quiz, quizResult == true, let quiz = quizEmotion {
+                CelebrationOverlay(message: "Correct! That's \(quiz.name)!", emoji: quiz.face)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
         .navigationTitle("Emotions")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            SpeechHelper.stop()
+        }
     }
 
     // MARK: - Explore Mode
     var exploreView: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 0) {
+            Spacer(minLength: 12)
+
             if let emotion = selectedEmotion {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 20) {
-                        // Left: Face & name
-                        VStack(spacing: 8) {
-                            Text(emotion.face)
-                                .font(.system(size: 90))
-                                .scaleEffect(bounceEmoji ? 1.2 : 1.0)
-                                .animation(.spring(response: 0.4, dampingFraction: 0.4), value: bounceEmoji)
-
-                            Text(emotion.name)
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundColor(emotion.color)
-
-                            // Related expressions
-                            HStack(spacing: 8) {
-                                ForEach(emotion.relatedFaces, id: \.self) { face in
-                                    Text(face).font(.system(size: 28))
-                                }
-                            }
-                        }
-                        .frame(width: 180)
-
-                        // Right: Info cards
-                        VStack(alignment: .leading, spacing: 8) {
-                            InfoBubble(icon: "💬", title: "What is it?", text: emotion.description, color: emotion.color)
-                            InfoBubble(icon: "🤔", title: "When you feel it:", text: emotion.whenYouFeel, color: .blue)
-                            InfoBubble(icon: "🫀", title: "Body clue:", text: emotion.bodyClue, color: .purple)
-                            InfoBubble(icon: "💡", title: "What to do:", text: emotion.whatToDo, color: .green)
-                        }
-                        .frame(width: 380)
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .frame(height: 260)
+                emotionDetailCard(emotion)
             } else {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        Text("😊").font(.system(size: 50))
-                        Text("😢").font(.system(size: 50))
-                        Text("😠").font(.system(size: 50))
-                        Text("😨").font(.system(size: 50))
+                VStack(spacing: 18) {
+                    HStack(spacing: 14) {
+                        ForEach(["😊", "😢", "😠", "😨"], id: \.self) { face in
+                            Text(face)
+                                .font(.system(size: 64))
+                        }
                     }
-                    Text("Tap an emotion to learn about it!")
-                        .font(.system(size: 22, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
+                    MascotBubble(theme: theme, text: "Tap an emotion to learn about it!")
                 }
-                .frame(height: 260)
+                .padding(.vertical, 28)
             }
+
+            Spacer(minLength: 20)
 
             // Emotions grid
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(emotions) { emotion in
-                    Button(action: { selectEmotion(emotion) }) {
-                        VStack(spacing: 4) {
-                            Text(emotion.face)
-                                .font(.system(size: 44))
-                            Text(emotion.name)
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 85)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(selectedEmotion?.id == emotion.id ? emotion.color.opacity(0.25) : .white.opacity(0.8))
-                                .shadow(radius: selectedEmotion?.id == emotion.id ? 5 : 2)
+            LazyVGrid(columns: columns, spacing: 14) {
+                ForEach(Array(emotions.enumerated()), id: \.element.id) { index, emotion in
+                    emotionGridCard(emotion)
+                        .popIn(delay: Double(index) * 0.04)
+                }
+            }
+            .frame(maxWidth: 820)
+            .padding(.horizontal, 24)
+
+            Spacer(minLength: 24)
+        }
+    }
+
+    private func emotionGridCard(_ emotion: Emotion) -> some View {
+        let isSelected = selectedEmotion?.id == emotion.id
+        return Button(action: { selectEmotion(emotion) }) {
+            VStack(spacing: 6) {
+                Text(emotion.face)
+                    .font(.system(size: 52))
+                Text(emotion.name)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 104)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            colors: [.white, emotion.color.opacity(isSelected ? 0.35 : 0.18)],
+                            startPoint: .top, endPoint: .bottom
                         )
-                        .scaleEffect(selectedEmotion?.id == emotion.id ? 1.08 : 1.0)
-                        .animation(.spring(response: 0.3), value: selectedEmotion?.id)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .strokeBorder(emotion.color.opacity(isSelected ? 0.9 : 0.45), lineWidth: 2.5)
+                    )
+                    .shadow(color: emotion.color.opacity(isSelected ? 0.45 : 0.25), radius: isSelected ? 8 : 5, y: 3)
+            )
+            .scaleEffect(isSelected ? 1.07 : 1.0)
+            .animation(.spring(response: 0.3), value: selectedEmotion?.id)
+        }
+        .buttonStyle(SquishyButtonStyle(scale: 0.92))
+    }
+
+    /// Single centered themed card: face on the left, info bubbles on the right.
+    private func emotionDetailCard(_ emotion: Emotion) -> some View {
+        HStack(alignment: .center, spacing: 28) {
+            // Left: Face & name
+            VStack(spacing: 10) {
+                Text(emotion.face)
+                    .font(.system(size: 104))
+                    .scaleEffect(bounceEmoji ? 1.2 : 1.0)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.4), value: bounceEmoji)
+
+                Text(emotion.name)
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundColor(emotion.color)
+
+                // Related expressions
+                HStack(spacing: 8) {
+                    ForEach(emotion.relatedFaces, id: \.self) { face in
+                        Text(face).font(.system(size: 30))
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .frame(width: 200)
 
-            Spacer()
+            // Right: Info bubbles
+            VStack(alignment: .leading, spacing: 10) {
+                InfoBubble(icon: "💬", title: "What is it?", text: emotion.description, color: emotion.color)
+                InfoBubble(icon: "🤔", title: "When you feel it:", text: emotion.whenYouFeel, color: .blue)
+                InfoBubble(icon: "🫀", title: "Body clue:", text: emotion.bodyClue, color: .purple)
+                InfoBubble(icon: "💡", title: "What to do:", text: emotion.whatToDo, color: .green)
+            }
+            .frame(maxWidth: 440)
         }
+        .padding(26)
+        .frame(maxWidth: 780)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [.white, emotion.color.opacity(0.15)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(emotion.color.opacity(0.5), lineWidth: 2.5)
+                )
+                .shadow(color: emotion.color.opacity(0.35), radius: 12, y: 6)
+        )
+        .padding(.horizontal, 24)
+        .transition(.scale.combined(with: .opacity))
     }
 
     // MARK: - Quiz Mode
     var quizView: some View {
-        VStack(spacing: 20) {
-            Text("Score: \(quizScore)/\(quizTotal)")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundColor(.orange)
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                StarCounterChip(count: quizScore)
+                StreakBadge(streak: quizStreak)
+            }
+            .padding(.top, 8)
 
-            if let quiz = quizEmotion {
-                switch quizType {
-                case .nameToFace:
-                    Text("Which face shows \"\(quiz.name)\"?")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .multilineTextAlignment(.center)
+            Spacer(minLength: 16)
 
-                    HStack(spacing: 20) {
-                        ForEach(quizOptions) { option in
-                            Button(action: { checkQuiz(option) }) {
-                                Text(option.face)
-                                    .font(.system(size: 70))
-                                    .frame(width: 120, height: 120)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 20)
-                                            .fill(.white.opacity(0.9))
-                                            .shadow(radius: 4)
-                                    )
-                            }
-                            .disabled(quizResult != nil)
-                        }
-                    }
-
-                case .faceToName:
-                    Text(quiz.face)
-                        .font(.system(size: 100))
-                    Text("How is this face feeling?")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-
-                    HStack(spacing: 16) {
-                        ForEach(quizOptions) { option in
-                            Button(action: { checkQuiz(option) }) {
-                                Text(option.name)
-                                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: 140, height: 60)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(option.color)
-                                            .shadow(radius: 4)
-                                    )
-                            }
-                            .disabled(quizResult != nil)
-                        }
-                    }
-
-                case .situationToEmotion:
-                    VStack(spacing: 12) {
-                        Text("🎭")
-                            .font(.system(size: 60))
-                        Text(quiz.whenYouFeel)
-                            .font(.system(size: 22, weight: .semibold, design: .rounded))
+            VStack(spacing: 28) {
+                if let quiz = quizEmotion {
+                    switch quizType {
+                    case .nameToFace:
+                        Text("Which face shows \"\(quiz.name)\"?")
+                            .font(.system(size: 32, weight: .heavy, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-                        Text("How would you feel?")
-                            .font(.system(size: 20, weight: .medium, design: .rounded))
-                            .foregroundColor(.secondary)
-                    }
 
-                    HStack(spacing: 16) {
-                        ForEach(quizOptions) { option in
-                            Button(action: { checkQuiz(option) }) {
-                                VStack(spacing: 6) {
+                        HStack(spacing: 24) {
+                            ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
+                                Button(action: { checkQuiz(option) }) {
                                     Text(option.face)
-                                        .font(.system(size: 50))
-                                    Text(option.name)
-                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                        .foregroundColor(.primary)
+                                        .font(.system(size: 84))
+                                        .frame(width: 144, height: 144)
+                                        .background(quizCardBackground())
                                 }
-                                .frame(width: 110, height: 100)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(.white.opacity(0.9))
-                                        .shadow(radius: 3)
-                                )
+                                .buttonStyle(SquishyButtonStyle())
+                                .disabled(quizResult != nil)
+                                .popIn(delay: Double(index) * 0.04)
                             }
-                            .disabled(quizResult != nil)
+                        }
+
+                    case .faceToName:
+                        Text(quiz.face)
+                            .font(.system(size: 120))
+                        Text("How is this face feeling?")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+
+                        HStack(spacing: 18) {
+                            ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
+                                Button(action: { checkQuiz(option) }) {
+                                    Text(option.name)
+                                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                        .frame(width: 160, height: 70)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(option.color)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 20)
+                                                        .strokeBorder(.white.opacity(0.5), lineWidth: 2.5)
+                                                )
+                                                .shadow(color: option.color.opacity(0.5), radius: 6, y: 3)
+                                        )
+                                }
+                                .buttonStyle(SquishyButtonStyle())
+                                .disabled(quizResult != nil)
+                                .popIn(delay: Double(index) * 0.04)
+                            }
+                        }
+
+                    case .situationToEmotion:
+                        VStack(spacing: 14) {
+                            Text("🎭")
+                                .font(.system(size: 70))
+                            Text(quiz.whenYouFeel)
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 48)
+                            Text("How would you feel?")
+                                .font(.system(size: 23, weight: .medium, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+
+                        HStack(spacing: 18) {
+                            ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
+                                Button(action: { checkQuiz(option) }) {
+                                    VStack(spacing: 8) {
+                                        Text(option.face)
+                                            .font(.system(size: 58))
+                                        Text(option.name)
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                                            .foregroundColor(.primary)
+                                    }
+                                    .frame(width: 132, height: 122)
+                                    .background(quizCardBackground())
+                                }
+                                .buttonStyle(SquishyButtonStyle())
+                                .disabled(quizResult != nil)
+                                .popIn(delay: Double(index) * 0.04)
+                            }
                         }
                     }
-                }
 
-                if let result = quizResult {
-                    Text(result ? "Correct! That's \(quiz.name)!" : "That's the \(quiz.name) \(quiz.face) face!")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundColor(result ? .green : .orange)
-                        .transition(.scale)
+                    if quizResult == false {
+                        Text("That's the \(quiz.name) \(quiz.face) face!")
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .foregroundColor(.orange)
+                            .transition(.scale)
+                    }
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 24)
         }
+    }
+
+    private func quizCardBackground() -> some View {
+        RoundedRectangle(cornerRadius: 22)
+            .fill(
+                LinearGradient(
+                    colors: [.white, theme.accent.opacity(0.14)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22)
+                    .strokeBorder(theme.accent.opacity(0.45), lineWidth: 2.5)
+            )
+            .shadow(color: theme.accent.opacity(0.3), radius: 7, y: 4)
     }
 
     // MARK: - Mirror Game (act out the emotion)
     @State private var mirrorEmotion: Emotion? = nil
-    @State private var mirrorTimer = 5
     @State private var mirrorActive = false
 
     var mirrorView: some View {
-        VStack(spacing: 24) {
-            Text("Make the face! Act it out!")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(.secondary)
+        VStack(spacing: 0) {
+            Spacer(minLength: 16)
 
-            if let emotion = mirrorEmotion {
-                VStack(spacing: 16) {
-                    Text("Show me your \(emotion.name) face!")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(emotion.color)
+            VStack(spacing: 26) {
+                Text("Make the face! Act it out!")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .foregroundColor(theme.accent)
 
-                    Text(emotion.face)
-                        .font(.system(size: 120))
-                        .scaleEffect(mirrorActive ? 1.1 : 1.0)
-                        .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: mirrorActive)
+                if let emotion = mirrorEmotion {
+                    VStack(spacing: 18) {
+                        Text("Show me your \(emotion.name) face!")
+                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .foregroundColor(emotion.color)
 
-                    Text(emotion.bodyClue)
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 60)
+                        Text(emotion.face)
+                            .font(.system(size: 140))
+                            .scaleEffect(mirrorActive ? 1.1 : 1.0)
+                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: mirrorActive)
 
-                    // Expression variants to try
-                    HStack(spacing: 12) {
-                        Text("Try these too:")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        Text(emotion.bodyClue)
+                            .font(.system(size: 21, weight: .medium, design: .rounded))
                             .foregroundColor(.secondary)
-                        ForEach(emotion.relatedFaces, id: \.self) { face in
-                            Text(face).font(.system(size: 36))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+
+                        // Expression variants to try
+                        HStack(spacing: 12) {
+                            Text("Try these too:")
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                            ForEach(emotion.relatedFaces, id: \.self) { face in
+                                Text(face).font(.system(size: 40))
+                            }
                         }
                     }
-                }
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(.white.opacity(0.8))
-                        .shadow(radius: 8)
-                )
+                    .padding(30)
+                    .frame(maxWidth: 720)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.white, emotion.color.opacity(0.15)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 24)
+                                    .strokeBorder(emotion.color.opacity(0.5), lineWidth: 2.5)
+                            )
+                            .shadow(color: emotion.color.opacity(0.35), radius: 12, y: 6)
+                    )
+                    .padding(.horizontal, 24)
 
-                Button(action: { nextMirrorEmotion() }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.right.circle.fill")
-                        Text("Next Emotion")
+                    Button(action: {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.pop)
+                        nextMirrorEmotion()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.right.circle.fill")
+                            Text("Next Emotion")
+                        }
+                        .font(.system(size: 23, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 15)
+                        .background(
+                            Capsule()
+                                .fill(theme.accent)
+                                .shadow(color: theme.accent.opacity(0.45), radius: 6, y: 3)
+                        )
                     }
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 14)
-                    .background(Capsule().fill(Color.blue))
+                    .buttonStyle(SquishyButtonStyle())
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 24)
         }
     }
 
     // MARK: - Functions
 
     func selectEmotion(_ emotion: Emotion) {
-        selectedEmotion = emotion
+        Haptics.tap()
+        SoundEngine.shared.playTileNote(emotions.firstIndex(where: { $0.id == emotion.id }) ?? 0)
+        withAnimation(.spring()) { selectedEmotion = emotion }
         bounceEmoji = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { bounceEmoji = false }
-        speak("\(emotion.name). \(emotion.description) \(emotion.whatToDo)")
+        SpeechHelper.speak("\(emotion.name)! \(emotion.description)")
     }
 
     func newQuizRound() {
@@ -429,11 +521,11 @@ struct EmotionsGameView: View {
 
         switch quizType {
         case .nameToFace:
-            speak("Which face shows \(quiz.name)?")
+            SpeechHelper.speak("Which face shows \(quiz.name)?")
         case .faceToName:
-            speak("How is this face feeling?")
+            SpeechHelper.speak("How is this face feeling?")
         case .situationToEmotion:
-            speak("\(quiz.whenYouFeel). How would you feel?")
+            SpeechHelper.speak("\(quiz.whenYouFeel). How would you feel?")
         }
     }
 
@@ -441,14 +533,32 @@ struct EmotionsGameView: View {
         quizTotal += 1
         if option.name == quizEmotion?.name {
             quizScore += 1
-            withAnimation { quizResult = true }
-            speak("Correct! That's the \(option.name) face!")
+            StarBank.shared.award(1, to: theme.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
+            withAnimation(.spring()) {
+                quizStreak += 1
+                quizResult = true
+            }
+            if quizStreak > 0, quizStreak % 5 == 0 {
+                StarBank.shared.award(1, to: theme.key)
+                quizScore += 1
+                SoundEngine.shared.play(.streak)
+                SpeechHelper.speak("\(quizStreak) in a row!")
+            } else {
+                SpeechHelper.speak("That's \(option.name)!")
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation { newQuizRound() }
             }
         } else {
-            withAnimation { quizResult = false }
-            speak("That's \(option.name). The answer is \(quizEmotion?.name ?? "")")
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            withAnimation(.spring()) {
+                quizStreak = 0
+                quizResult = false
+            }
+            SpeechHelper.speak("Oops! That's the \(quizEmotion?.name ?? "") face.")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation { quizResult = nil }
             }
@@ -463,17 +573,8 @@ struct EmotionsGameView: View {
     func nextMirrorEmotion() {
         mirrorEmotion = emotions.randomElement()
         if let emotion = mirrorEmotion {
-            speak("Show me your \(emotion.name) face! \(emotion.bodyClue)")
+            SpeechHelper.speak("Show me your \(emotion.name) face!")
         }
-    }
-
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
     }
 }
 
@@ -485,23 +586,23 @@ struct InfoBubble: View {
     let color: Color
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text(icon).font(.system(size: 18))
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .top, spacing: 10) {
+            Text(icon).font(.system(size: 22))
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(color)
                 Text(text)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(8)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.white.opacity(0.7))
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.white.opacity(0.8))
         )
     }
 }

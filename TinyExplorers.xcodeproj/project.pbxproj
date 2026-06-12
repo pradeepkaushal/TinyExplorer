@@ -25,6 +25,9 @@
 		A10016 /* SpeechHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10017; };
 		A10017 /* CountingGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10018; };
 		A10018 /* EmotionsGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019; };
+		A10019 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020; };
+		A10020 /* SoundEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021; };
+		A10021 /* BundledVoice in Resources */ = {isa = PBXBuildFile; fileRef = B10022; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +50,9 @@
 		B10017 /* SpeechHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechHelper.swift; sourceTree = "<group>"; };
 		B10018 /* CountingGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountingGameView.swift; sourceTree = "<group>"; };
 		B10019 /* EmotionsGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmotionsGameView.swift; sourceTree = "<group>"; };
+		B10020 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		B10021 /* SoundEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEngine.swift; sourceTree = "<group>"; };
+		B10022 /* BundledVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BundledVoice; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,9 +79,12 @@
 			children = (
 				B10001 /* TinyExplorersApp.swift */,
 				B10002 /* HomeView.swift */,
+				B10020 /* DesignSystem.swift */,
+				B10021 /* SoundEngine.swift */,
 				B10017 /* SpeechHelper.swift */,
 				D10003 /* Games */,
 				B10009 /* Assets.xcassets */,
+				B10022 /* BundledVoice */,
 			);
 			path = TinyExplorers;
 			sourceTree = "<group>";
@@ -168,6 +177,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10009 /* Assets.xcassets in Resources */,
+				A10021 /* BundledVoice in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -195,6 +205,8 @@
 				A10016 /* SpeechHelper.swift in Sources */,
 				A10017 /* CountingGameView.swift in Sources */,
 				A10018 /* EmotionsGameView.swift in Sources */,
+				A10019 /* DesignSystem.swift in Sources */,
+				A10020 /* SoundEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,9 +279,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = RC334HN4W7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Explorers";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
@@ -299,9 +312,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = RC334HN4W7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Explorers";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";

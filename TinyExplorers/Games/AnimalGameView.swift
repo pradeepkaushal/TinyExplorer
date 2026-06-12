@@ -1,5 +1,4 @@
 import SwiftUI
-import AVFoundation
 
 struct Animal: Identifiable {
     let id = UUID()
@@ -46,8 +45,6 @@ struct AnimalGameView: View {
     @State private var bounceAnimal = false
     @State private var gameMode: AnimalGameMode = .explore
 
-    let synthesizer = AVSpeechSynthesizer()
-
     enum AnimalGameMode {
         case explore
         case guess
@@ -56,26 +53,32 @@ struct AnimalGameView: View {
     @State private var quizAnimal: Animal? = nil
     @State private var quizOptions: [Animal] = []
     @State private var quizScore = 0
+    @State private var quizStreak = 0
     @State private var showResult: Bool? = nil
+    @State private var celebrationMessage = Encouragement.random()
+    /// Drives the gentle idle pulse of the paw placeholder.
+    @State private var pawPulse = false
 
-    let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 6)
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: 6)
+
+    private let theme = GameTheme.animals
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.85, green: 1.0, blue: 0.85), Color(red: 0.95, green: 1.0, blue: 0.85)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            PlayfulBackground(theme: .animals)
 
             VStack(spacing: 16) {
-                Picker("Mode", selection: $gameMode) {
-                    Text("Explore").tag(AnimalGameMode.explore)
-                    Text("Sound Quiz").tag(AnimalGameMode.guess)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 200)
+                ThemedSegmentedPicker(
+                    items: [
+                        (title: "Explore", value: AnimalGameMode.explore),
+                        (title: "Sound Quiz", value: AnimalGameMode.guess),
+                    ],
+                    selection: $gameMode,
+                    accent: theme.accent
+                )
                 .onChange(of: gameMode) { _ in
+                    SoundEngine.shared.play(.pop)
+                    SpeechHelper.stop()
                     if gameMode == .guess { newQuizRound() }
                 }
 
@@ -85,99 +88,135 @@ struct AnimalGameView: View {
                     guessView
                 }
             }
+            .padding(.top, 8)
         }
         .navigationTitle("Animal Friends")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear { SpeechHelper.stop() }
     }
 
     var exploreView: some View {
         VStack(spacing: 16) {
+            Spacer(minLength: 0)
+
             // Display area
             if let animal = selectedAnimal {
                 VStack(spacing: 12) {
                     Text(animal.emoji)
-                        .font(.system(size: 120))
+                        .font(.system(size: 130))
                         .scaleEffect(bounceAnimal ? 1.3 : 1.0)
                         .animation(.spring(response: 0.4, dampingFraction: 0.4), value: bounceAnimal)
 
                     Text(animal.name)
-                        .font(.system(size: 38, weight: .bold, design: .rounded))
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
                         .foregroundColor(animal.color == .white ? .gray : animal.color)
 
                     if showSound {
                         Text("\" \(animal.sound) \"")
-                            .font(.system(size: 28, weight: .semibold, design: .rounded))
+                            .font(.system(size: 30, weight: .semibold, design: .rounded))
                             .foregroundColor(.orange)
                             .transition(.scale)
                     }
 
                     Text(animal.fact)
-                        .font(.system(size: 20, weight: .medium, design: .rounded))
+                        .font(.system(size: 22, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                 }
-                .frame(height: 300)
+                .frame(height: 290)
                 .animation(.spring(), value: selectedAnimal?.id)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 14) {
+                    // Gentle idle pulse on the paw placeholder.
                     Text("🐾")
-                        .font(.system(size: 80))
-                    Text("Tap an animal to learn about it!")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 90))
+                    MascotBubble(theme: theme, text: "Tap an animal to learn about it!")
                 }
-                .frame(height: 300)
+                .frame(height: 290)
             }
 
             // Animal grid
             LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(animals) { animal in
+                ForEach(Array(animals.enumerated()), id: \.element.id) { index, animal in
                     Button(action: { selectAnimal(animal) }) {
-                        VStack(spacing: 6) {
+                        VStack(spacing: 8) {
                             Text(animal.emoji)
-                                .font(.system(size: 60))
+                                .font(.system(size: 64))
                             Text(animal.name)
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
                                 .foregroundColor(.primary)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 110)
+                        .frame(height: 122)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(.white.opacity(0.8))
-                                .shadow(radius: selectedAnimal?.id == animal.id ? 6 : 2)
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(selectedAnimal?.id == animal.id ?
+                                      theme.accent.opacity(0.18) : theme.accent.opacity(0.06))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.92))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(
+                                            theme.accent.opacity(selectedAnimal?.id == animal.id ? 0.7 : 0.3),
+                                            lineWidth: 2.5
+                                        )
+                                )
+                                .shadow(
+                                    color: theme.accent.opacity(selectedAnimal?.id == animal.id ? 0.4 : 0.18),
+                                    radius: selectedAnimal?.id == animal.id ? 8 : 3,
+                                    y: 3
+                                )
                         )
-                        .scaleEffect(selectedAnimal?.id == animal.id ? 1.1 : 1.0)
+                        .scaleEffect(selectedAnimal?.id == animal.id ? 1.08 : 1.0)
                         .animation(.spring(), value: selectedAnimal?.id)
                     }
+                    .buttonStyle(SquishyButtonStyle())
+                    .popIn(delay: Double(index) * 0.02)
                 }
             }
             .padding(.horizontal, 32)
 
-            Spacer()
+            Spacer(minLength: 0)
         }
     }
 
     var guessView: some View {
+        ZStack {
+            quizContent
+            if showResult == true {
+                CelebrationOverlay(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+
+    var quizContent: some View {
         VStack(spacing: 24) {
-            Text("Score: \(quizScore)")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundColor(.green)
+            HStack(spacing: 12) {
+                StarCounterChip(count: quizScore)
+                StreakBadge(streak: quizStreak)
+            }
+
+            Spacer(minLength: 0)
 
             if let quiz = quizAnimal {
                 VStack(spacing: 16) {
                     Text("Which animal says...")
-                        .font(.system(size: 24, weight: .medium, design: .rounded))
+                        .font(.system(size: 26, weight: .medium, design: .rounded))
 
                     Text("\" \(quiz.sound) \"")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.system(size: 38, weight: .bold, design: .rounded))
                         .foregroundColor(.orange)
 
                     Button("🔊 Hear it again") {
-                        speakAnimalSound(quiz)
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
+                        SpeechHelper.speak(quiz.sound)
                     }
                     .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .buttonStyle(SquishyButtonStyle())
                 }
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 20), count: 2), spacing: 20) {
@@ -185,36 +224,44 @@ struct AnimalGameView: View {
                         Button(action: { checkGuess(option) }) {
                             VStack(spacing: 12) {
                                 Text(option.emoji)
-                                    .font(.system(size: 80))
+                                    .font(.system(size: 84))
                                 Text(option.name)
-                                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                    .font(.system(size: 26, weight: .semibold, design: .rounded))
                                     .foregroundColor(.primary)
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 180)
+                            .frame(height: 190)
                             .background(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .fill(.white.opacity(0.9))
-                                    .shadow(radius: 4)
+                                RoundedRectangle(cornerRadius: 22)
+                                    .fill(.white.opacity(0.92))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 22)
+                                            .stroke(theme.accent.opacity(0.35), lineWidth: 3)
+                                    )
+                                    .shadow(color: theme.accent.opacity(0.22), radius: 5, y: 4)
                             )
                         }
+                        .buttonStyle(SquishyButtonStyle())
                     }
                 }
                 .padding(.horizontal, 60)
 
-                if let result = showResult {
-                    Text(result ? "✅ Correct!" : "❌ That's the \(quizAnimal?.name ?? ""). Try again!")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .foregroundColor(result ? .green : .red)
+                if showResult == false {
+                    Text("❌ Oops! Try again!")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundColor(.red)
                         .transition(.scale)
                 }
             }
 
-            Spacer()
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
         }
     }
 
     func selectAnimal(_ animal: Animal) {
+        Haptics.tap()
+        SoundEngine.shared.playTileNote(animals.firstIndex(where: { $0.id == animal.id }) ?? 0)
         selectedAnimal = animal
         bounceAnimal = true
         showSound = false
@@ -224,25 +271,7 @@ struct AnimalGameView: View {
             withAnimation { showSound = true }
         }
 
-        speakAnimalSound(animal)
-    }
-
-    func speakAnimalSound(_ animal: Animal) {
-        let utterance = AVSpeechUtterance(string: "The \(animal.name) says \(animal.sound)")
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
-    }
-
-    func speak(_ text: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.3
-        utterance.pitchMultiplier = 1.2
-        utterance.voice = SpeechHelper.preferredVoice
-        synthesizer.stopSpeaking(at: .immediate)
-        synthesizer.speak(utterance)
+        SpeechHelper.speak("The \(animal.name) says \(animal.sound)")
     }
 
     func newQuizRound() {
@@ -257,21 +286,40 @@ struct AnimalGameView: View {
         quizOptions = options.shuffled()
 
         if let quiz = quizAnimal {
-            speak("Which animal says \(quiz.sound)")
+            SpeechHelper.speak("Which animal says \(quiz.sound)")
         }
     }
 
     func checkGuess(_ option: Animal) {
+        guard showResult != true else { return }
         if option.name == quizAnimal?.name {
-            withAnimation { showResult = true }
-            quizScore += 1
-            speak("Correct! The \(option.name) says \(option.sound)")
+            celebrationMessage = Encouragement.random()
+            withAnimation {
+                showResult = true
+                quizScore += 1
+                quizStreak += 1
+            }
+            StarBank.shared.award(1, to: GameTheme.animals.key)
+            Haptics.success()
+            SoundEngine.shared.play(.correct)
+            SpeechHelper.speak(celebrationMessage)
+            if quizStreak > 0 && quizStreak % 5 == 0 {
+                StarBank.shared.award(1, to: GameTheme.animals.key)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    SoundEngine.shared.play(.streak)
+                }
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation { newQuizRound() }
             }
         } else {
-            withAnimation { showResult = false }
-            speak("That's the \(option.name). Try again!")
+            withAnimation {
+                showResult = false
+                quizStreak = 0
+            }
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            SpeechHelper.speak("Oops, that's the \(option.name)!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation { showResult = nil }
             }
