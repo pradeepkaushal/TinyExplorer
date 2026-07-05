@@ -16,6 +16,10 @@ struct MemoryGameView: View {
     @State private var showWin = false
     @State private var difficulty: Difficulty = .easy
     @State private var newGamePulse = false
+    @State private var isPeeking = false
+    @State private var peekCountdown = 0
+    /// Invalidates scheduled peek callbacks when a new game starts mid-peek.
+    @State private var gameGeneration = 0
 
     enum Difficulty: String, CaseIterable {
         case easy = "Easy (6)"
@@ -35,6 +39,15 @@ struct MemoryGameView: View {
             case .easy: return 3
             case .medium: return 4
             case .hard: return 6
+            }
+        }
+
+        /// How long the cards stay revealed to memorize before covering.
+        var peekSeconds: Int {
+            switch self {
+            case .easy: return 6
+            case .medium: return 9
+            case .hard: return 12
             }
         }
     }
@@ -98,8 +111,14 @@ struct MemoryGameView: View {
                 }
                 .padding(.horizontal, 16)
 
-                MascotBubble(theme: .memory, text: "Find all the matching pairs!", mascotSize: 44)
-                    .popIn(delay: 0.1)
+                MascotBubble(
+                    theme: .memory,
+                    text: isPeeking
+                        ? "👀 Look and remember… \(peekCountdown)"
+                        : "Find all the matching pairs!",
+                    mascotSize: 44
+                )
+                .popIn(delay: 0.1)
 
                 // Cards grid — fills all remaining space, centered
                 GeometryReader { geo in
@@ -170,18 +189,44 @@ struct MemoryGameView: View {
     }
 
     func startNewGame() {
+        gameGeneration += 1
+        let generation = gameGeneration
         let emojis = Array(allEmojis.shuffled().prefix(difficulty.pairCount))
         let paired = (emojis + emojis).shuffled()
-        cards = paired.map { MemoryCard(emoji: $0) }
+        // Start face-up: the kid gets a few seconds to memorize the board.
+        cards = paired.map { MemoryCard(emoji: $0, isFaceUp: true) }
         firstFlippedIndex = nil
         isProcessing = false
         moves = 0
         matchedPairs = 0
         showWin = false
+
+        isPeeking = true
+        let peekSeconds = difficulty.peekSeconds
+        peekCountdown = peekSeconds
+        SpeechHelper.speak("Look closely and remember the cards!")
+
+        for second in 1...peekSeconds {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(second)) {
+                guard gameGeneration == generation else { return }
+                peekCountdown = peekSeconds - second
+                if peekCountdown > 0 { SoundEngine.shared.play(.tap) }
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(peekSeconds)) {
+            guard gameGeneration == generation else { return }
+            withAnimation(.easeInOut(duration: 0.45)) {
+                for i in cards.indices { cards[i].isFaceUp = false }
+            }
+            SoundEngine.shared.play(.pop)
+            isPeeking = false
+            SpeechHelper.speak("Now find the pairs!")
+        }
     }
 
     func flipCard(at index: Int) {
-        guard !isProcessing,
+        guard !isPeeking,
+              !isProcessing,
               !cards[index].isFaceUp,
               !cards[index].isMatched else { return }
 

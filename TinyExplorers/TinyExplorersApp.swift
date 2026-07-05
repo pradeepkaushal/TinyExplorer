@@ -46,6 +46,11 @@ struct TinyExplorersApp: App {
         case "oddOneOut": return AnyView(OddOneOutGameView())
         case "counting": return AnyView(CountingGameView())
         case "emotions": return AnyView(EmotionsGameView())
+        case "stickers": return AnyView(StickerBookView())
+        case "buddy": return AnyView(BuddyPickerView())
+        case "spelling": return AnyView(WordBuilderGameView())
+        case "listen": return AnyView(ListenFindGameView())
+        case "clock": return AnyView(ClockGameView())
         default: return nil
         }
     }

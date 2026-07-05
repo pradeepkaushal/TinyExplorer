@@ -117,6 +117,30 @@ struct GameTheme {
         floaters: ["🎈", "🍎", "⭐"],
         mascot: "🐢"
     )
+    static let spelling = GameTheme(
+        key: "spelling",
+        accent: Color(red: 0.35, green: 0.40, blue: 0.90),
+        gradientTop: Color(red: 0.89, green: 0.90, blue: 1.0),
+        gradientBottom: Color(red: 0.95, green: 0.92, blue: 1.0),
+        floaters: ["✏️", "🔤", "🌟"],
+        mascot: "🐝"
+    )
+    static let listen = GameTheme(
+        key: "listen",
+        accent: Color(red: 0.93, green: 0.45, blue: 0.30),
+        gradientTop: Color(red: 1.0, green: 0.91, blue: 0.86),
+        gradientBottom: Color(red: 1.0, green: 0.95, blue: 0.88),
+        floaters: ["🔍", "👀", "✨"],
+        mascot: "🦜"
+    )
+    static let clock = GameTheme(
+        key: "clock",
+        accent: Color(red: 0.30, green: 0.52, blue: 0.75),
+        gradientTop: Color(red: 0.87, green: 0.93, blue: 1.0),
+        gradientBottom: Color(red: 0.92, green: 0.96, blue: 1.0),
+        floaters: ["⏰", "🕐", "✨"],
+        mascot: "🐓"
+    )
     static let emotions = GameTheme(
         key: "emotions",
         accent: Color(red: 0.93, green: 0.42, blue: 0.54),
@@ -391,20 +415,54 @@ final class StarBank: ObservableObject {
     static let shared = StarBank()
 
     @Published private(set) var stars: [String: Int]
+    @Published private(set) var spent: Int
 
     private let defaultsKey = "TinyExplorers.starBank"
+    private let spentKey = "TinyExplorers.starsSpent"
 
     private init() {
         stars = UserDefaults.standard.dictionary(forKey: defaultsKey) as? [String: Int] ?? [:]
+        spent = UserDefaults.standard.integer(forKey: spentKey)
     }
 
+    /// Lifetime stars earned; per-game counts on cards always keep growing.
     var total: Int { stars.values.reduce(0, +) }
+
+    /// Stars left to spend in the sticker book.
+    var available: Int { max(0, total - spent) }
 
     func count(for key: String) -> Int { stars[key] ?? 0 }
 
     func award(_ amount: Int = 1, to key: String) {
         stars[key, default: 0] += amount
         UserDefaults.standard.set(stars, forKey: defaultsKey)
+    }
+
+    /// Deducts from the spendable balance; returns false if there aren't enough.
+    func spend(_ amount: Int) -> Bool {
+        guard available >= amount else { return false }
+        spent += amount
+        UserDefaults.standard.set(spent, forKey: spentKey)
+        return true
+    }
+}
+
+/// Mastery medals: game cards earn bronze/silver/gold as stars accumulate,
+/// giving kids a reason to come back to games they already "finished".
+enum StarBadge {
+    static func medal(for stars: Int) -> String? {
+        switch stars {
+        case 50...: return "🥇"
+        case 25..<50: return "🥈"
+        case 10..<25: return "🥉"
+        default: return nil
+        }
+    }
+
+    /// Stars still needed for the next medal, for "almost there!" hints.
+    static func nextGoal(after stars: Int) -> Int? {
+        for goal in [10, 25, 50] where stars < goal { return goal }
+        return nil
     }
 }
 

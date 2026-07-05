@@ -28,6 +28,11 @@
 		A10019 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10020; };
 		A10020 /* SoundEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10021; };
 		A10021 /* BundledVoice in Resources */ = {isa = PBXBuildFile; fileRef = B10022; };
+		A10022 /* Rewards.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10023; };
+		A10023 /* StickerBookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10024; };
+		A10024 /* WordBuilderGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10025; };
+		A10025 /* ListenFindGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10026; };
+		A10026 /* ClockGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10027; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,6 +58,11 @@
 		B10020 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		B10021 /* SoundEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundEngine.swift; sourceTree = "<group>"; };
 		B10022 /* BundledVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; path = BundledVoice; sourceTree = "<group>"; };
+		B10023 /* Rewards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rewards.swift; sourceTree = "<group>"; };
+		B10024 /* StickerBookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerBookView.swift; sourceTree = "<group>"; };
+		B10025 /* WordBuilderGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordBuilderGameView.swift; sourceTree = "<group>"; };
+		B10026 /* ListenFindGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListenFindGameView.swift; sourceTree = "<group>"; };
+		B10027 /* ClockGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClockGameView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +89,8 @@
 			children = (
 				B10001 /* TinyExplorersApp.swift */,
 				B10002 /* HomeView.swift */,
+				B10023 /* Rewards.swift */,
+				B10024 /* StickerBookView.swift */,
 				B10020 /* DesignSystem.swift */,
 				B10021 /* SoundEngine.swift */,
 				B10017 /* SpeechHelper.swift */,
@@ -106,6 +118,9 @@
 				B10016 /* OddOneOutGameView.swift */,
 				B10018 /* CountingGameView.swift */,
 				B10019 /* EmotionsGameView.swift */,
+				B10025 /* WordBuilderGameView.swift */,
+				B10026 /* ListenFindGameView.swift */,
+				B10027 /* ClockGameView.swift */,
 			);
 			path = Games;
 			sourceTree = "<group>";
@@ -207,6 +222,11 @@
 				A10018 /* EmotionsGameView.swift in Sources */,
 				A10019 /* DesignSystem.swift in Sources */,
 				A10020 /* SoundEngine.swift in Sources */,
+				A10022 /* Rewards.swift in Sources */,
+				A10023 /* StickerBookView.swift in Sources */,
+				A10024 /* WordBuilderGameView.swift in Sources */,
+				A10025 /* ListenFindGameView.swift in Sources */,
+				A10026 /* ClockGameView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
