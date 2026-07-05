@@ -57,6 +57,14 @@ struct ListenFindGameView: View {
     @State private var wrongItem: SpyItem? = nil
     @State private var round = 1
     @State private var celebrationMessage = Encouragement.random()
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Listen carefully to the name!",
+        "Tap the speaker to hear it again!",
+        "Say the word out loud, then find it!",
+        "You're a great listener — go fast!",
+    ]
 
     private let theme = GameTheme.listen
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 20), count: 3)
@@ -78,9 +86,18 @@ struct ListenFindGameView: View {
                     }
                 }
 
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+
                 HStack(spacing: 12) {
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
                     Spacer()
                     Text("Round \(round)")
                         .font(.system(size: 17, weight: .bold, design: .rounded))
@@ -155,12 +172,16 @@ struct ListenFindGameView: View {
             .padding(.horizontal, 30)
 
             if celebrating, let target {
-                CelebrationOverlay(message: celebrationMessage, emoji: target.emoji)
+                CelebrationOverlayEnhanced(message: celebrationMessage, emoji: target.emoji)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("I Spy")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "I Spy", theme: theme)
         .onAppear { newRound() }
         .onDisappear { SpeechHelper.stop() }
     }
@@ -169,7 +190,9 @@ struct ListenFindGameView: View {
         celebrating = false
         wrongItem = nil
         let pool = SpyCategory.all[categoryIndex].items.shuffled()
-        choices = Array(pool.prefix(6))
+        // Progressive: more items at higher levels (6 → 8 → 9)
+        let itemCount = min(9, 6 + progression.level / 3)
+        choices = Array(pool.prefix(itemCount))
         target = choices.randomElement()
         if let target {
             SpeechHelper.speak("Find the \(target.name)!")
@@ -183,10 +206,13 @@ struct ListenFindGameView: View {
             score += 1
             streak += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
-            SpeechHelper.cheer(celebrationMessage)
-            if streak > 0 && streak % 5 == 0 {
+            if !progression.showLevelUp {
+                SpeechHelper.cheer(celebrationMessage)
+            }
+            if !progression.showLevelUp, streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                     SoundEngine.shared.play(.streak)
@@ -195,7 +221,9 @@ struct ListenFindGameView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 celebrating = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
+            let delay = progression.showLevelUp ? 2.5 : 1.9
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 round += 1
                 withAnimation { newRound() }
             }

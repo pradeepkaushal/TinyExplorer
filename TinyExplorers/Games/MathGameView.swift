@@ -13,6 +13,15 @@ struct MathGameView: View {
     @State private var difficulty: MathDifficulty = .easy
     @State private var bounceAnswer = false
     @State private var idlePulse = false
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Count on your fingers to help you!",
+        "Take your time — no rush!",
+        "Look at the pictures for a clue!",
+        "You're doing great — keep going!",
+        "Try doing it in your head now!",
+    ]
 
     private let theme = GameTheme.math
 
@@ -38,9 +47,19 @@ struct MathGameView: View {
         case hard = "Hard"
     }
 
+    /// Auto-scales difficulty based on progression level.
+    private func currentDifficulty() -> MathDifficulty {
+        switch progression.level {
+        case 1...2: return .easy
+        case 3...5: return .medium
+        default: return .hard
+        }
+    }
+
     /// Number range per operation: Hard goes up to 50 for +/−,
     /// multiplication uses times-table factors up to 12.
     private func range(for op: MathOperation) -> ClosedRange<Int> {
+        let diff = currentDifficulty()
         switch op {
         case .addition, .subtraction:
             switch difficulty {
@@ -68,7 +87,7 @@ struct MathGameView: View {
             PlayfulBackground(theme: .math)
 
             VStack(spacing: 18) {
-                // Controls: two clean rows
+                // Controls: operation picker only (difficulty auto-scales)
                 VStack(spacing: 10) {
                     ThemedSegmentedPicker(
                         items: MathOperation.allCases.map { (title: $0.rawValue, value: $0) },
@@ -77,24 +96,28 @@ struct MathGameView: View {
                     )
                     .onChange(of: operation) { _ in generateQuestion() }
 
-                    ThemedSegmentedPicker(
-                        items: MathDifficulty.allCases.map { (title: $0.rawValue, value: $0) },
-                        selection: $difficulty,
-                        accent: theme.accent
+                    GameProgressHeader(
+                        level: progression.level,
+                        correctInLevel: progression.correctInLevel,
+                        neededForNextLevel: progression.neededForNextLevel,
+                        theme: theme,
+                        hint: progression.currentHint(from: hints)
                     )
-                    .onChange(of: difficulty) { _ in generateQuestion() }
                 }
                 .padding(.horizontal, 20)
 
                 // Score + streak
                 HStack(spacing: 16) {
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
 
                     if totalQuestions > 0 {
                         Text("\(Int(Double(score) / Double(totalQuestions) * 100))%")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.system(size: 22, weight: .heavy, design: .rounded))
                             .foregroundColor(.green)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 5)
+                            .background(Capsule().fill(.white.opacity(0.85)))
                     }
                 }
 
@@ -112,23 +135,23 @@ struct MathGameView: View {
                     ForEach(Array(options.enumerated()), id: \.element) { index, option in
                         Button(action: { checkAnswer(option) }) {
                             Text("\(option)")
-                                .font(.system(size: 58, weight: .bold, design: .rounded))
+                                .font(.system(size: 58, weight: .heavy, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 130)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 22)
+                                    RoundedRectangle(cornerRadius: 24)
                                         .fill(
                                             LinearGradient(
-                                                colors: [theme.accent, theme.accent.opacity(0.7)],
+                                                colors: [theme.accent, theme.accent.opacity(0.65)],
                                                 startPoint: .top, endPoint: .bottom
                                             )
                                         )
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 22)
-                                                .stroke(Color.white.opacity(0.55), lineWidth: 2.5)
+                                            RoundedRectangle(cornerRadius: 24)
+                                                .stroke(Color.white.opacity(0.6), lineWidth: 3)
                                         )
-                                        .shadow(color: theme.accent.opacity(0.45), radius: 7, y: 4)
+                                        .shadow(color: theme.accent.opacity(0.5), radius: 10, y: 5)
                                 )
                         }
                         .buttonStyle(SquishyButtonStyle())
@@ -143,8 +166,14 @@ struct MathGameView: View {
                 if let result = showResult {
                     HStack(spacing: 12) {
                         Text(result ? Encouragement.random() : "The answer is \(correctAnswer)")
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .font(.system(size: 28, weight: .heavy, design: .rounded))
                             .foregroundColor(result ? .green : .orange)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(.white.opacity(0.9))
+                                    .shadow(color: (result ? Color.green : Color.orange).opacity(0.3), radius: 6, y: 3)
+                            )
 
                         if result {
                             Text("⭐")
@@ -159,9 +188,13 @@ struct MathGameView: View {
                 Spacer()
             }
             .padding(.top, 12)
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Math Fun")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Math Fun", theme: theme)
         .onAppear {
             generateQuestion()
             idlePulse = true
@@ -356,6 +389,7 @@ struct MathGameView: View {
         if answer == correctAnswer {
             score += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
@@ -363,15 +397,21 @@ struct MathGameView: View {
                 showResult = true
                 bounceAnswer = true
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 SoundEngine.shared.play(.streak)
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { bounceAnswer = false }
 
-            SpeechHelper.cheer(Encouragement.random())
+            if !progression.showLevelUp {
+                SpeechHelper.cheer(Encouragement.random())
+            }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+            let delay = progression.showLevelUp ? 2.5 : 1.3
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation { generateQuestion() }
             }
         } else {

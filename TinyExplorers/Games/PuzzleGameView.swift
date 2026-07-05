@@ -61,6 +61,14 @@ struct PuzzleGameView: View {
     @State private var score = 0
     @State private var showWrongFeedback = false
     @State private var nextThemePulse = false
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Tap a piece, then tap its matching spot!",
+        "Look at the faint picture for a clue!",
+        "Match all pieces to win!",
+        "You're a puzzle master now!",
+    ]
 
     var currentTheme: (name: String, emojis: [String]) {
         puzzleThemes[currentThemeIndex]
@@ -82,7 +90,7 @@ struct PuzzleGameView: View {
 
                     Spacer()
 
-                    StarCounterChip(count: score)
+                    StarCounterChipEnhanced(count: score)
 
                     Spacer()
 
@@ -114,6 +122,15 @@ struct PuzzleGameView: View {
                     SoundEngine.shared.play(.tap)
                     resetPuzzle()
                 }
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: .puzzle,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
 
                 // Main play area — vertically centered in the remaining space
                 GeometryReader { geo in
@@ -169,7 +186,7 @@ struct PuzzleGameView: View {
 
             if completed {
                 VStack(spacing: 20) {
-                    CelebrationOverlay(message: "Puzzle Complete!", emoji: "🧩")
+                    CelebrationOverlayEnhanced(message: "Puzzle Complete!", emoji: "🧩")
 
                     Button("Next Puzzle") {
                         Haptics.tap()
@@ -187,9 +204,13 @@ struct PuzzleGameView: View {
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(10)
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: .puzzle)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Puzzle Time")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Puzzle Time", theme: .puzzle)
         .onAppear {
             resetPuzzle()
             nextThemePulse = true
@@ -324,8 +345,11 @@ struct PuzzleGameView: View {
             if slots.allSatisfy({ $0 != nil }) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     StarBank.shared.award(1, to: GameTheme.puzzle.key)
-                    SoundEngine.shared.play(.win)
-                    SpeechHelper.cheer(Encouragement.random())
+                    progression.registerCorrect()
+                    if !progression.showLevelUp {
+                        SoundEngine.shared.play(.win)
+                        SpeechHelper.cheer(Encouragement.random())
+                    }
                     withAnimation(.spring()) { completed = true }
                 }
             }

@@ -20,6 +20,14 @@ struct MemoryGameView: View {
     @State private var peekCountdown = 0
     /// Invalidates scheduled peek callbacks when a new game starts mid-peek.
     @State private var gameGeneration = 0
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Look closely during the peek time!",
+        "Remember where each animal is!",
+        "Flip cards two at a time to match!",
+        "You have a super memory now!",
+    ]
 
     enum Difficulty: String, CaseIterable {
         case easy = "Easy (6)"
@@ -111,6 +119,15 @@ struct MemoryGameView: View {
                 }
                 .padding(.horizontal, 16)
 
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: .memory,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+
                 MascotBubble(
                     theme: .memory,
                     text: isPeeking
@@ -160,7 +177,7 @@ struct MemoryGameView: View {
 
             if showWin {
                 VStack(spacing: 20) {
-                    CelebrationOverlay(message: "You did it in \(moves) moves!")
+                    CelebrationOverlayEnhanced(message: "You did it in \(moves) moves!")
 
                     Button("Play Again") {
                         Haptics.tap()
@@ -178,9 +195,13 @@ struct MemoryGameView: View {
                 .transition(.scale.combined(with: .opacity))
                 .zIndex(10)
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: .memory)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Memory Match")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Memory Match", theme: .memory)
         .onAppear {
             startNewGame()
             newGamePulse = true
@@ -255,8 +276,11 @@ struct MemoryGameView: View {
                     if matchedPairs == difficulty.pairCount {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             StarBank.shared.award(1, to: GameTheme.memory.key)
+                            progression.registerCorrect()
                             SoundEngine.shared.play(.win)
-                            SpeechHelper.cheer(Encouragement.random())
+                            if !progression.showLevelUp {
+                                SpeechHelper.cheer(Encouragement.random())
+                            }
                             withAnimation(.spring()) { showWin = true }
                         }
                     }

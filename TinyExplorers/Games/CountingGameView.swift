@@ -2,6 +2,14 @@ import SwiftUI
 
 struct CountingGameView: View {
     @State private var mode: CountingMode = .numberLine
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Tap numbers in the right order!",
+        "Count by 2s, 5s, or 10s to go faster!",
+        "Which number is bigger or smaller?",
+        "You're a number expert now!",
+    ]
 
     private let theme = GameTheme.counting
 
@@ -24,20 +32,33 @@ struct CountingGameView: View {
                 )
                 .padding(.horizontal, 40)
 
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+
                 switch mode {
                 case .numberLine:
-                    NumberLineView()
+                    NumberLineView(progression: $progression)
                 case .skipCount:
-                    SkipCountView()
+                    SkipCountView(progression: $progression)
                 case .compare:
-                    CompareView()
+                    CompareView(progression: $progression)
                 case .beforeAfter:
-                    BeforeAfterView()
+                    BeforeAfterView(progression: $progression)
                 }
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Number Counting")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Number Counting", theme: theme)
         .onDisappear { SpeechHelper.stop() }
     }
 }
@@ -51,6 +72,7 @@ struct NumberLineView: View {
     @State private var wrongTap = false
     @State private var shuffled: [Int] = []
     @State private var promptBreathe = false
+    @Binding var progression: GameProgression
 
     private let theme = GameTheme.counting
     let numberColors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink, .teal, .indigo, .mint]
@@ -113,7 +135,7 @@ struct NumberLineView: View {
             }
 
             if showComplete {
-                CelebrationOverlay(message: "You counted to \(maxNumber)!", emoji: "🔢")
+                CelebrationOverlayEnhanced(message: "You counted to \(maxNumber)!", emoji: "🔢")
                     .transition(.scale.combined(with: .opacity))
             }
         }
@@ -197,10 +219,13 @@ struct NumberLineView: View {
 
             if nextExpected > maxNumber {
                 StarBank.shared.award(1, to: theme.key)
+                progression.registerCorrect()
                 Haptics.success()
                 SoundEngine.shared.play(.win)
                 withAnimation { showComplete = true }
-                SpeechHelper.speak("You counted to \(maxNumber)!")
+                if !progression.showLevelUp {
+                    SpeechHelper.speak("You counted to \(maxNumber)!")
+                }
             }
         } else {
             wrongTap = true
@@ -225,14 +250,15 @@ struct SkipCountView: View {
     @State private var score = 0
     @State private var streak = 0
     @State private var hintPulse = false
+    @Binding var progression: GameProgression
 
     private let theme = GameTheme.counting
 
     var body: some View {
         VStack(spacing: 22) {
             HStack(spacing: 14) {
-                StarCounterChip(count: score)
-                StreakBadge(streak: streak)
+                StarCounterChipEnhanced(count: score)
+                StreakBadgeEnhanced(streak: streak)
 
                 Spacer()
 
@@ -373,6 +399,7 @@ struct SkipCountView: View {
         if answer == correct {
             score += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
@@ -380,11 +407,15 @@ struct SkipCountView: View {
                 revealed.insert(nextToReveal)
                 showResult = true
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 SoundEngine.shared.play(.streak)
             }
-            SpeechHelper.speak("\(correct)!")
+            if !progression.showLevelUp {
+                SpeechHelper.speak("\(correct)!")
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 withAnimation {
                     showResult = nil
@@ -393,7 +424,9 @@ struct SkipCountView: View {
                         generateOptions()
                     } else {
                         SoundEngine.shared.play(.win)
-                        SpeechHelper.speak("You counted by \(skipBy)s!")
+                        if !progression.showLevelUp {
+                            SpeechHelper.speak("You counted by \(skipBy)s!")
+                        }
                     }
                 }
             }
@@ -422,14 +455,15 @@ struct CompareView: View {
     @State private var showResult: String? = nil
     @State private var maxRange = 20
     @State private var orBreathe = false
+    @Binding var progression: GameProgression
 
     private let theme = GameTheme.counting
 
     var body: some View {
         VStack(spacing: 26) {
             HStack(spacing: 14) {
-                StarCounterChip(count: score)
-                StreakBadge(streak: streak)
+                StarCounterChipEnhanced(count: score)
+                StreakBadgeEnhanced(streak: streak)
                 Spacer()
                 ThemedSegmentedPicker(
                     items: [
@@ -525,17 +559,22 @@ struct CompareView: View {
         if picked == bigger {
             score += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
                 streak += 1
                 showResult = "Correct! \(bigger) is bigger!"
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 SoundEngine.shared.play(.streak)
             }
-            SpeechHelper.speak("Yes! \(bigger) is bigger!")
+            if !progression.showLevelUp {
+                SpeechHelper.speak("Yes! \(bigger) is bigger!")
+            }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)
@@ -562,6 +601,7 @@ struct BeforeAfterView: View {
     @State private var streak = 0
     @State private var showResult: Bool? = nil
     @State private var mysteryPulse = false
+    @Binding var progression: GameProgression
 
     private let theme = GameTheme.counting
 
@@ -583,8 +623,8 @@ struct BeforeAfterView: View {
     var body: some View {
         VStack(spacing: 28) {
             HStack(spacing: 14) {
-                StarCounterChip(count: score)
-                StreakBadge(streak: streak)
+                StarCounterChipEnhanced(count: score)
+                StreakBadgeEnhanced(streak: streak)
             }
 
             Spacer()
@@ -734,17 +774,22 @@ struct BeforeAfterView: View {
         if answer == correctAnswer {
             score += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
                 streak += 1
                 showResult = true
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 SoundEngine.shared.play(.streak)
             }
-            SpeechHelper.speak("Yes, \(correctAnswer)!")
+            if !progression.showLevelUp {
+                SpeechHelper.speak("Yes, \(correctAnswer)!")
+            }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)

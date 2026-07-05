@@ -16,6 +16,14 @@ struct DrawingGameView: View {
     @State private var showStickers = false
     @State private var placedStickers: [(emoji: String, position: CGPoint)] = []
     @State private var paletteBob = false
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Pick a color and start drawing!",
+        "Try different brush sizes!",
+        "Add stickers to your art!",
+        "Use the eraser to fix mistakes!",
+    ]
 
     // Eraser paints canvas-white; "White" is a real paint color.
     let colors: [(Color, String)] = [
@@ -43,15 +51,28 @@ struct DrawingGameView: View {
             HStack(spacing: 14) {
                 toolSidebar
                 VStack(spacing: 10) {
+                    GameProgressHeader(
+                        level: progression.level,
+                        correctInLevel: progression.correctInLevel,
+                        neededForNextLevel: progression.neededForNextLevel,
+                        theme: .drawing,
+                        hint: progression.currentHint(from: hints)
+                    )
+                    .padding(.horizontal, 10)
+
                     MascotBubble(theme: .drawing, text: "Let's draw something amazing!", mascotSize: 44)
                         .popIn(delay: 0.1)
                     canvasCard
                 }
             }
             .padding(14)
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: .drawing)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Drawing Fun")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Drawing Fun", theme: .drawing)
         .onAppear { paletteBob = true }
     }
 

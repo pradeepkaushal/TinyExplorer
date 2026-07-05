@@ -107,6 +107,14 @@ struct ShapesGameView: View {
     @State private var showWrong = false
     @State private var gameMode: GameMode = .explore
     @State private var celebrationMessage = ""
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Look at the shape's sides and corners!",
+        "Match the outline to the right shape!",
+        "Colors can help you remember shapes!",
+        "You're a shape master — go fast!",
+    ]
 
     private let theme = GameTheme.shapes
 
@@ -142,12 +150,16 @@ struct ShapesGameView: View {
             }
 
             if showCorrect {
-                CelebrationOverlay(message: celebrationMessage)
+                CelebrationOverlayEnhanced(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Colors & Shapes")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Colors & Shapes", theme: theme)
         .onDisappear { SpeechHelper.stop() }
     }
 
@@ -274,11 +286,21 @@ struct ShapesGameView: View {
 
     var quizView: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                StarCounterChip(count: score)
-                StreakBadge(streak: streak)
-            }
+            GameProgressHeader(
+                level: progression.level,
+                correctInLevel: progression.correctInLevel,
+                neededForNextLevel: progression.neededForNextLevel,
+                theme: theme,
+                hint: progression.currentHint(from: hints)
+            )
+            .padding(.horizontal, 24)
             .padding(.top, 4)
+
+            HStack(spacing: 14) {
+                StarCounterChipEnhanced(count: score)
+                StreakBadgeEnhanced(streak: streak)
+            }
+            .padding(.top, 8)
 
             Spacer(minLength: 16)
 
@@ -374,6 +396,7 @@ struct ShapesGameView: View {
         if shape.name == targetShape?.name {
             celebrationMessage = Encouragement.random()
             StarBank.shared.award(1, to: GameTheme.shapes.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
@@ -381,15 +404,17 @@ struct ShapesGameView: View {
                 score += 1
                 streak += 1
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: GameTheme.shapes.key)
                 SoundEngine.shared.play(.streak)
             }
             SpeechHelper.speak("That's a \(shape.name)!")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
-                    showCorrect = false
-                }
+            let delay = progression.showLevelUp ? 2.5 : 1.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
+                withAnimation { showCorrect = false }
                 pickNewTarget()
             }
         } else {

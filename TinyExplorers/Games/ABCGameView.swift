@@ -55,6 +55,14 @@ struct ABCGameView: View {
     @State private var quizStreak = 0
     @State private var quizShowResult: Bool? = nil
     @State private var quizEmojiBob = false
+    @State private var progression = GameProgression()
+
+    private let quizHints = [
+        "Look at the picture and find its first letter!",
+        "Say the word out loud — what sound does it start with?",
+        "The answer gets harder — take your time!",
+        "You're a letter pro now — go fast!",
+    ]
 
     private let theme = GameTheme.abc
 
@@ -91,9 +99,13 @@ struct ABCGameView: View {
             if showConfetti {
                 ConfettiView()
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("ABC Letters")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "ABC Letters", theme: theme)
         .onDisappear {
             SpeechHelper.stop()
         }
@@ -267,10 +279,21 @@ struct ABCGameView: View {
 
     var quizView: some View {
         VStack(spacing: 0) {
+            GameProgressHeader(
+                level: progression.level,
+                correctInLevel: progression.correctInLevel,
+                neededForNextLevel: progression.neededForNextLevel,
+                theme: theme,
+                hint: progression.currentHint(from: quizHints)
+            )
+            .padding(.horizontal, 24)
+            .padding(.top, 4)
+
             HStack(spacing: 16) {
-                StarCounterChip(count: quizScore)
-                StreakBadge(streak: quizStreak)
+                StarCounterChipEnhanced(count: quizScore)
+                StreakBadgeEnhanced(streak: quizStreak)
             }
+            .padding(.top, 8)
 
             Spacer(minLength: 16)
 
@@ -278,16 +301,27 @@ struct ABCGameView: View {
                 if let quiz = quizLetter, let info = letterData[quiz] {
                     VStack(spacing: 16) {
                         Text("Which letter does \(info.word) start with?")
-                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .font(.system(size: 30, weight: .heavy, design: .rounded))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
 
                         Text(info.emoji)
                             .font(.system(size: 120))
+                            .shadow(color: theme.accent.opacity(0.3), radius: 8, y: 4)
 
                         Text(info.word)
                             .font(.system(size: 36, weight: .bold, design: .rounded))
                     }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(.white.opacity(0.85))
+                            .shadow(color: theme.accent.opacity(0.2), radius: 10, y: 5)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(theme.accent.opacity(0.3), lineWidth: 2.5)
+                    )
 
                     HStack(spacing: 26) {
                         ForEach(Array(quizOptions.enumerated()), id: \.element) { index, option in
@@ -300,15 +334,15 @@ struct ABCGameView: View {
                                         RoundedRectangle(cornerRadius: 24)
                                             .fill(
                                                 LinearGradient(
-                                                    colors: [theme.accent, theme.accent.opacity(0.75)],
+                                                    colors: [theme.accent, theme.accent.opacity(0.7)],
                                                     startPoint: .top, endPoint: .bottom
                                                 )
                                             )
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 24)
-                                                    .strokeBorder(.white.opacity(0.5), lineWidth: 2.5)
+                                                    .strokeBorder(.white.opacity(0.6), lineWidth: 3)
                                             )
-                                            .shadow(color: theme.accent.opacity(0.45), radius: 8, y: 4)
+                                            .shadow(color: theme.accent.opacity(0.5), radius: 10, y: 5)
                                     )
                             }
                             .buttonStyle(SquishyButtonStyle())
@@ -319,8 +353,13 @@ struct ABCGameView: View {
 
                     if let result = quizShowResult {
                         Text(result ? "Correct! \(String(quiz)) is for \(info.word)!" : "Try again! \(info.word) starts with \(String(quiz))")
-                            .font(.system(size: 27, weight: .bold, design: .rounded))
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
                             .foregroundColor(result ? .green : .orange)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule().fill(.white.opacity(0.9))
+                            )
                             .transition(.scale)
                     }
                 }
@@ -370,8 +409,11 @@ struct ABCGameView: View {
         quizLetter = letters.randomElement()
         guard let quiz = quizLetter else { return }
 
+        // Progressive: more options at higher levels (4 → 5 → 6)
+        let optionCount = min(6, 4 + progression.level / 3)
+
         var opts: [Character] = [quiz]
-        while opts.count < 4 {
+        while opts.count < optionCount {
             if let random = letters.randomElement(), !opts.contains(random) {
                 opts.append(random)
             }
@@ -387,13 +429,16 @@ struct ABCGameView: View {
         if answer == quizLetter {
             quizScore += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation(.spring()) {
                 quizStreak += 1
                 quizShowResult = true
             }
-            if quizStreak > 0, quizStreak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if quizStreak > 0, quizStreak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 quizScore += 1
                 SoundEngine.shared.play(.streak)
@@ -401,7 +446,10 @@ struct ABCGameView: View {
             } else if let info = letterData[quizLetter!] {
                 SpeechHelper.speak("\(String(quizLetter!)) is for \(info.word)!")
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+
+            let delay = progression.showLevelUp ? 2.5 : 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation { newQuizRound() }
             }
         } else {

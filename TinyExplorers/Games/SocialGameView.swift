@@ -113,6 +113,14 @@ struct SocialGameView: View {
     @State private var showExplanation = false
     @State private var shuffledScenarios: [SocialScenario] = []
     @State private var scenarioSway = false
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Think: what would a kind friend do?",
+        "Put yourself in their shoes!",
+        "There's always a caring choice!",
+        "You're a kindness champion now!",
+    ]
 
     private let theme = GameTheme.social
 
@@ -127,8 +135,8 @@ struct SocialGameView: View {
             VStack(spacing: 0) {
                 // Score bar
                 HStack(spacing: 16) {
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
 
                     Spacer()
 
@@ -151,6 +159,16 @@ struct SocialGameView: View {
                 }
                 .padding(.horizontal, 40)
                 .padding(.top, 16)
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
 
                 Spacer(minLength: 16)
 
@@ -180,9 +198,13 @@ struct SocialGameView: View {
 
                 Spacer(minLength: 24)
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Social Skills")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Social Skills", theme: theme)
         .onAppear {
             shuffledScenarios = scenarios.shuffled()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -369,10 +391,13 @@ struct SocialGameView: View {
         if option.isCorrect {
             score += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation(.spring()) { streak += 1 }
-            if streak > 0, streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0, streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 score += 1
                 SoundEngine.shared.play(.streak)

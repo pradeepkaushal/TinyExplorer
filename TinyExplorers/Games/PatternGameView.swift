@@ -27,6 +27,14 @@ struct PatternGameView: View {
     @State private var shuffledPatterns: [[( emoji: String, name: String)]] = []
     @State private var celebrationMessage = ""
     @State private var roundNumber = 0
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Look for what repeats in the pattern!",
+        "Say the pattern out loud: red, blue, red…",
+        "Find the thing that comes again and again!",
+        "You're a pattern detective now!",
+    ]
 
     private let theme = GameTheme.pattern
 
@@ -45,10 +53,10 @@ struct PatternGameView: View {
             PlayfulBackground(theme: .pattern)
 
             VStack(spacing: 0) {
-                // Score
+                // Score + progression
                 HStack(spacing: 14) {
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
 
                     Spacer()
 
@@ -61,6 +69,16 @@ struct PatternGameView: View {
                 }
                 .padding(.horizontal, 50)
                 .padding(.top, 12)
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
 
                 Spacer(minLength: 16)
 
@@ -161,12 +179,16 @@ struct PatternGameView: View {
             }
 
             if showResult == true {
-                CelebrationOverlay(message: celebrationMessage)
+                CelebrationOverlayEnhanced(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Pattern Fun")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Pattern Fun", theme: theme)
         .onAppear {
             shuffledPatterns = patternSets.shuffled()
             setupRound()
@@ -182,9 +204,9 @@ struct PatternGameView: View {
         // The answer is the next in the repeating pattern.
         let cycleLength = findCycleLength(base)
 
-        // Patterns get longer as the player answers more correctly:
-        // 4 tiles to start, 5 after 3 correct, 6 after 6 correct.
-        let length = 4 + min(score / 3, 2)
+        // Patterns get longer as the player levels up:
+        // 4 tiles to start, +1 every 2 levels (max 8).
+        let length = 4 + min(progression.level / 2, 4)
         displayedPattern = (0..<length).map { base[$0 % cycleLength] }
         correctAnswer = base[length % cycleLength]
 
@@ -230,6 +252,7 @@ struct PatternGameView: View {
         if option.emoji == correctAnswer.emoji {
             celebrationMessage = Encouragement.random()
             StarBank.shared.award(1, to: GameTheme.pattern.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
@@ -237,13 +260,19 @@ struct PatternGameView: View {
                 score += 1
                 streak += 1
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: GameTheme.pattern.key)
                 SoundEngine.shared.play(.streak)
             }
-            SpeechHelper.speak("Yes, it's the \(correctAnswer.name)!")
+            if !progression.showLevelUp {
+                SpeechHelper.speak("Yes, it's the \(correctAnswer.name)!")
+            }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let delay = progression.showLevelUp ? 2.5 : 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation {
                     currentPatternIndex += 1
                     if currentPatternIndex >= shuffledPatterns.count {

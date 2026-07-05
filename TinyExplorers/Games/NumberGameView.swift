@@ -7,6 +7,14 @@ struct NumberGameView: View {
     @State private var showCelebration = false
     @State private var bounceNumber = false
     @State private var idlePulse = false
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Tap each item and count out loud!",
+        "Count slowly — one at a time!",
+        "The number tells you how many to tap!",
+        "You're a counting champion now!",
+    ]
 
     private let theme = GameTheme.numbers
 
@@ -24,6 +32,15 @@ struct NumberGameView: View {
             VStack(spacing: 26) {
                 Spacer(minLength: 8)
 
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+
                 numberBadge
 
                 missionHeader
@@ -37,12 +54,16 @@ struct NumberGameView: View {
             .frame(maxHeight: .infinity)
 
             if showCelebration {
-                CelebrationOverlay(message: "You counted to \(currentNumber)!", emoji: numberEmojis[currentNumber] ?? "🎉")
+                CelebrationOverlayEnhanced(message: "You counted to \(currentNumber)!", emoji: numberEmojis[currentNumber] ?? "🎉")
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("123 Numbers")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "123 Numbers", theme: theme)
         .onAppear {
             resetCounting()
             idlePulse = true
@@ -214,15 +235,26 @@ struct NumberGameView: View {
 
         if tappedCount == currentNumber {
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.win)
             withAnimation {
                 showCelebration = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                SpeechHelper.speak("You counted to \(currentNumber)!")
+            if !progression.showLevelUp {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    SpeechHelper.speak("You counted to \(currentNumber)!")
+                }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            let delay = progression.showLevelUp ? 3.0 : 3.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
+                // Auto-advance to next number on level up
+                if progression.showLevelUp && currentNumber < 20 {
+                    currentNumber += 1
+                    bounceNumber = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { bounceNumber = false }
+                }
                 withAnimation { showCelebration = false }
             }
         }

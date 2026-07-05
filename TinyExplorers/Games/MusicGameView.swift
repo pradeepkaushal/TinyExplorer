@@ -55,6 +55,14 @@ struct MusicGameView: View {
     @State private var noteSway = false
     /// Bumped on every key/bar tap so the glow flourish retriggers.
     @State private var flourishTick = 0
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Tap instruments to hear their sound!",
+        "Record and play back your song!",
+        "Try the piano keys to play a tune!",
+        "Make a song with 4+ notes for a star!",
+    ]
 
     @ObservedObject private var starBank = StarBank.shared
 
@@ -88,11 +96,20 @@ struct MusicGameView: View {
                         accent: theme.accent
                     )
 
-                    StarCounterChip(count: starBank.count(for: GameTheme.music.key), compact: true)
+                    StarCounterChipEnhanced(count: starBank.count(for: GameTheme.music.key), compact: true)
                 }
                 .onChange(of: gameMode) { _ in
                     SoundEngine.shared.play(.pop)
                 }
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
 
                 if gameMode == .freeplay {
                     freePlayView
@@ -102,8 +119,12 @@ struct MusicGameView: View {
             }
             .padding(.top, 8)
         }
-        .navigationTitle("Music Maker")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Music Maker", theme: theme)
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
     }
 
     // MARK: - Free Play
@@ -479,6 +500,7 @@ struct MusicGameView: View {
             let finish = Double(recording.count) * 0.45 + 0.3
             DispatchQueue.main.asyncAfter(deadline: .now() + finish) {
                 StarBank.shared.award(1, to: GameTheme.music.key)
+                progression.registerCorrect()
                 SoundEngine.shared.play(.win)
                 Haptics.success()
             }

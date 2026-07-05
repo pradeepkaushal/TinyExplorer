@@ -90,6 +90,14 @@ struct AnimalGameView: View {
     @State private var celebrationMessage = Encouragement.random()
     /// Drives the gentle idle pulse of the paw placeholder.
     @State private var pawPulse = false
+    @State private var progression = GameProgression()
+
+    private let quizHints = [
+        "Think about what sound the animal makes!",
+        "Say the sound out loud, then find it!",
+        "Some animals have funny sounds — listen carefully!",
+        "You know so many animals now — amazing!",
+    ]
 
     let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: 6)
 
@@ -122,8 +130,7 @@ struct AnimalGameView: View {
             }
             .padding(.top, 8)
         }
-        .navigationTitle("Animal Friends")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Animal Friends", theme: theme)
         .onAppear {
             #if DEBUG
             // `-demo` launch argument pre-selects an animal so automated
@@ -242,7 +249,11 @@ struct AnimalGameView: View {
         ZStack {
             quizContent
             if showResult == true {
-                CelebrationOverlay(message: celebrationMessage)
+                CelebrationOverlayEnhanced(message: celebrationMessage)
+                    .transition(.scale.combined(with: .opacity))
+            }
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
@@ -250,9 +261,18 @@ struct AnimalGameView: View {
 
     var quizContent: some View {
         VStack(spacing: 24) {
+            GameProgressHeader(
+                level: progression.level,
+                correctInLevel: progression.correctInLevel,
+                neededForNextLevel: progression.neededForNextLevel,
+                theme: theme,
+                hint: progression.currentHint(from: quizHints)
+            )
+            .padding(.horizontal, 24)
+
             HStack(spacing: 12) {
-                StarCounterChip(count: quizScore)
-                StreakBadge(streak: quizStreak)
+                StarCounterChipEnhanced(count: quizScore)
+                StreakBadgeEnhanced(streak: quizStreak)
             }
 
             Spacer(minLength: 0)
@@ -356,16 +376,23 @@ struct AnimalGameView: View {
                 quizStreak += 1
             }
             StarBank.shared.award(1, to: GameTheme.animals.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
-            SpeechHelper.speak(celebrationMessage)
-            if quizStreak > 0 && quizStreak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else {
+                SpeechHelper.speak(celebrationMessage)
+            }
+            if !progression.showLevelUp, quizStreak > 0 && quizStreak % 5 == 0 {
                 StarBank.shared.award(1, to: GameTheme.animals.key)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                     SoundEngine.shared.play(.streak)
                 }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let delay = progression.showLevelUp ? 2.5 : 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation { newQuizRound() }
             }
         } else {

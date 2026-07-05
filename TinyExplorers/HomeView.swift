@@ -101,35 +101,74 @@ struct HomeView: View {
     }
 
     var header: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 14) {
+        VStack(spacing: 14) {
+            HStack(spacing: 18) {
+                // Buddy avatar — big, golden, and inviting
                 Button {
                     Haptics.tap()
                     SoundEngine.shared.play(.pop)
                     showBuddyPicker = true
                 } label: {
-                    VStack(spacing: 2) {
-                        WavingMascot(emoji: profile.buddy.emoji)
+                    VStack(spacing: 5) {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color(red: 1.0, green: 0.92, blue: 0.55), Color(red: 1.0, green: 0.78, blue: 0.35)],
+                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 84, height: 84)
+                                .shadow(color: Color(red: 0.9, green: 0.65, blue: 0.15).opacity(0.55), radius: 10, y: 5)
+                            Circle()
+                                .stroke(Color.white.opacity(0.85), lineWidth: 4)
+                                .frame(width: 78, height: 78)
+                            WavingMascot(emoji: profile.buddy.emoji)
+                        }
                         Text(profile.buddy.name)
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(Color(red: 0.85, green: 0.6, blue: 0.05)))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule().fill(
+                                    LinearGradient(
+                                        colors: [Color(red: 0.9, green: 0.65, blue: 0.1), Color(red: 0.85, green: 0.55, blue: 0.05)],
+                                        startPoint: .top, endPoint: .bottom
+                                    )
+                                )
+                            )
+                            .shadow(color: Color(red: 0.8, green: 0.5, blue: 0.0).opacity(0.4), radius: 3, y: 2)
                     }
                 }
                 .buttonStyle(SquishyButtonStyle(scale: 0.88))
 
-                WavyTitle(text: "Tiny Explorers")
+                VStack(spacing: 8) {
+                    WavyTitle(text: "Tiny Explorers")
+
+                    HStack(spacing: 10) {
+                        LevelBadge(level: LevelSystem.level(for: starBank.total), size: 52)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(LevelSystem.title(for: LevelSystem.level(for: starBank.total)))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(red: 0.3, green: 0.35, blue: 0.5))
+                            XPProgressBar(
+                                progress: LevelSystem.progress(for: starBank.total),
+                                height: 12,
+                                showLabel: false
+                            )
+                            .frame(width: 150)
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
             }
 
-            Text("\(Profile.greeting()) Pick a game and earn stars!")
-                .font(.system(size: 21, weight: .medium, design: .rounded))
-                .foregroundColor(Color(red: 0.35, green: 0.4, blue: 0.55))
-
-            StarCounterChip(count: starBank.available)
+            StarCounterChipEnhanced(count: starBank.available)
         }
-        .padding(.top, 16)
+        .padding(.top, 20)
+        .padding(.horizontal, 28)
         .frame(maxWidth: .infinity)
     }
 
@@ -158,31 +197,50 @@ struct DailyGiftCard: View {
     @State private var shaking = false
     @State private var reward: Int? = nil
     @State private var celebrate = false
+    @State private var glowPulse = false
 
     var body: some View {
         Button(action: open) {
             HStack(spacing: 14) {
-                Text(gift.isReady ? "🎁" : "🎀")
-                    .font(.system(size: 54))
-                    .rotationEffect(.degrees(shaking ? 8 : 0))
-                    .animation(
-                        shaking
-                            ? .easeInOut(duration: 0.07).repeatCount(7, autoreverses: true)
-                            : .default,
-                        value: shaking
-                    )
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [Color(red: 1.0, green: 0.9, blue: 0.5).opacity(0.5), .clear],
+                                center: .center, startRadius: 5, endRadius: 40
+                            )
+                        )
+                        .frame(width: 70, height: 70)
+                    Text(gift.isReady ? "🎁" : "🎀")
+                        .font(.system(size: 54))
+                        .rotationEffect(.degrees(shaking ? 8 : 0))
+                        .animation(
+                            shaking
+                                ? .easeInOut(duration: 0.07).repeatCount(7, autoreverses: true)
+                                : .default,
+                            value: shaking
+                        )
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(gift.isReady ? "Daily Surprise!" : "Gift opened!")
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(red: 0.2, green: 0.25, blue: 0.4), Color(red: 0.5, green: 0.35, blue: 0.7)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
                     if let reward {
-                        Text("You found \(reward) stars! ⭐")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color(red: 0.85, green: 0.6, blue: 0.05))
+                        HStack(spacing: 4) {
+                            Text("⭐").font(.system(size: 16))
+                            Text("+\(reward) stars!")
+                                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                                .foregroundColor(Color(red: 0.85, green: 0.6, blue: 0.05))
+                        }
                     } else {
-                        Text(gift.isReady ? "Tap to open your gift" : "Come back tomorrow!")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        Text(gift.isReady ? "Tap to open!" : "Come back tomorrow!")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(Color(red: 0.45, green: 0.5, blue: 0.65))
                     }
                 }
@@ -196,16 +254,22 @@ struct DailyGiftCard: View {
                     .fill(
                         LinearGradient(
                             colors: gift.isReady
-                                ? [Color(red: 1.0, green: 0.95, blue: 0.75), .white]
+                                ? [Color(red: 1.0, green: 0.95, blue: 0.75), Color(red: 1.0, green: 0.98, blue: 0.9), .white]
                                 : [Color(red: 0.95, green: 0.95, blue: 0.97), .white],
-                            startPoint: .top, endPoint: .bottom
+                            startPoint: .topLeading, endPoint: .bottomTrailing
                         )
                     )
-                    .shadow(color: Color(red: 0.9, green: 0.6, blue: 0.1).opacity(gift.isReady ? 0.4 : 0.15), radius: 9, y: 5)
+                    .shadow(color: Color(red: 0.9, green: 0.6, blue: 0.1).opacity(gift.isReady ? (glowPulse ? 0.55 : 0.35) : 0.15), radius: glowPulse ? 14 : 9, y: 5)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 26)
-                    .stroke(Color(red: 0.9, green: 0.65, blue: 0.15).opacity(gift.isReady ? 0.5 : 0.2), lineWidth: 2.5)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color(red: 0.95, green: 0.75, blue: 0.2).opacity(gift.isReady ? 0.7 : 0.2), Color(red: 0.9, green: 0.6, blue: 0.1).opacity(gift.isReady ? 0.4 : 0.1)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2.5
+                    )
             )
             .overlay {
                 if celebrate { ConfettiView() }
@@ -213,6 +277,11 @@ struct DailyGiftCard: View {
         }
         .buttonStyle(SquishyButtonStyle(scale: 0.93))
         .disabled(!gift.isReady && reward == nil)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                glowPulse = true
+            }
+        }
     }
 
     private func open() {
@@ -242,20 +311,50 @@ struct DailyGiftCard: View {
 struct StickerBookCard: View {
     let unlockedCount: Int
 
+    @State private var glowPulse = false
+
     var body: some View {
         HStack(spacing: 14) {
-            Text("📖")
-                .font(.system(size: 54))
+            ZStack {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color(red: 1.0, green: 0.8, blue: 0.6).opacity(0.4), .clear],
+                            center: .center, startRadius: 5, endRadius: 40
+                        )
+                    )
+                    .frame(width: 70, height: 70)
+                Text("📖")
+                    .font(.system(size: 54))
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sticker Book")
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
-                Text(unlockedCount > 0
-                     ? "\(unlockedCount) of \(StickerPack.totalStickerCount) collected"
-                     : "Spend stars on stickers!")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(Color(red: 0.85, green: 0.55, blue: 0.1))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(red: 0.2, green: 0.25, blue: 0.4), Color(red: 0.6, green: 0.35, blue: 0.2)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                if unlockedCount > 0 {
+                    HStack(spacing: 6) {
+                        Text("\(unlockedCount)/\(StickerPack.totalStickerCount)")
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color(red: 0.85, green: 0.55, blue: 0.1))
+                        XPProgressBar(
+                            progress: Double(unlockedCount) / Double(StickerPack.totalStickerCount),
+                            height: 8,
+                            showLabel: false,
+                            accent: Color(red: 0.85, green: 0.55, blue: 0.1)
+                        )
+                        .frame(width: 80)
+                    }
+                } else {
+                    Text("Spend stars on stickers!")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(red: 0.85, green: 0.55, blue: 0.1))
+                }
             }
             Spacer(minLength: 0)
         }
@@ -266,17 +365,28 @@ struct StickerBookCard: View {
             RoundedRectangle(cornerRadius: 26)
                 .fill(
                     LinearGradient(
-                        colors: [Color(red: 1.0, green: 0.92, blue: 0.85), .white],
-                        startPoint: .top, endPoint: .bottom
+                        colors: [Color(red: 1.0, green: 0.92, blue: 0.82), Color(red: 1.0, green: 0.97, blue: 0.92), .white],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
                     )
                 )
-                .shadow(color: Color(red: 0.93, green: 0.5, blue: 0.3).opacity(0.35), radius: 9, y: 5)
+                .shadow(color: Color(red: 0.93, green: 0.5, blue: 0.3).opacity(glowPulse ? 0.5 : 0.3), radius: glowPulse ? 14 : 9, y: 5)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 26)
-                .stroke(Color(red: 0.93, green: 0.55, blue: 0.3).opacity(0.45), lineWidth: 2.5)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color(red: 0.95, green: 0.6, blue: 0.3).opacity(0.6), Color(red: 0.9, green: 0.5, blue: 0.25).opacity(0.3)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2.5
+                )
         )
         .contentShape(RoundedRectangle(cornerRadius: 26))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                glowPulse = true
+            }
+        }
     }
 }
 
@@ -302,10 +412,10 @@ struct WavyTitle: View {
                     Text(String(char))
                         .font(.system(size: 52, weight: .heavy, design: .rounded))
                         .foregroundColor(rainbow[i % rainbow.count])
-                        .offset(y: sin(t * 2.2 + Double(i) * 0.45) * 5)
+                        .offset(y: sin(t * 2.2 + Double(i) * 0.45) * 6)
+                        .shadow(color: rainbow[i % rainbow.count].opacity(0.5), radius: 3, y: 2)
                 }
             }
-            .shadow(color: .white.opacity(0.8), radius: 2, y: 2)
         }
     }
 }
@@ -331,15 +441,48 @@ struct SectionHeader: View {
     let title: String
     let emoji: String
 
+    @State private var shimmer = false
+
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 14) {
             Text(emoji)
-                .font(.system(size: 30))
+                .font(.system(size: 40))
+                .scaleEffect(shimmer ? 1.15 : 1.0)
+                .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: shimmer)
+
             Text(title)
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
-                .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                .font(.system(size: 32, weight: .heavy, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(red: 0.2, green: 0.25, blue: 0.45), Color(red: 0.4, green: 0.35, blue: 0.65)],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                )
+
             Spacer()
+
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 0.85, green: 0.75, blue: 0.95).opacity(0.6), .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                )
+                .frame(height: 4)
+                .frame(maxWidth: 120)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(
+                    LinearGradient(
+                        colors: [.white.opacity(0.75), .white.opacity(0.35)],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                )
+        )
+        .onAppear { shimmer = true }
     }
 }
 
@@ -349,69 +492,109 @@ struct GameCard: View {
     let game: GameItem
     let stars: Int
 
+    @State private var hoverGlow = false
+
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ZStack {
+                // Soft radial glow behind the emoji
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [game.theme.accent.opacity(0.25), game.theme.accent.opacity(0.1)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                        RadialGradient(
+                            colors: [game.theme.accent.opacity(0.35), game.theme.accent.opacity(0.08)],
+                            center: .center, startRadius: 5, endRadius: 60
                         )
                     )
-                    .frame(width: 96, height: 96)
-                Text(game.emoji)
-                    .font(.system(size: 58))
+                    .frame(width: 110, height: 110)
+                    .blur(radius: 2)
 
-                if let medal = StarBadge.medal(for: stars) {
-                    Text(medal)
-                        .font(.system(size: 30))
-                        .offset(x: 38, y: -34)
-                        .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
+                Text(game.emoji)
+                    .font(.system(size: 72))
+                    .shadow(color: game.theme.accent.opacity(0.3), radius: 4, y: 2)
+
+                // Star badge — small, top-right corner
+                if stars > 0 {
+                    HStack(spacing: 2) {
+                        Text("⭐")
+                            .font(.system(size: 13))
+                        Text("\(stars)")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color(red: 0.7, green: 0.5, blue: 0.0))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule().fill(.white)
+                            .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                    )
+                    .offset(x: 38, y: -38)
                 }
             }
 
-            VStack(spacing: 4) {
-                Text(game.title)
-                    .font(.system(size: 24, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.7)
-                    .lineLimit(1)
+            // Title — big and bold
+            Text(game.title)
+                .font(.system(size: 24, weight: .heavy, design: .rounded))
+                .foregroundColor(Color(red: 0.15, green: 0.2, blue: 0.35))
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
 
-                Text(game.lesson)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundColor(game.theme.accent)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
+            // Lesson subtitle
+            Text(game.lesson)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(game.theme.accent)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
-            if stars > 0 {
-                StarCounterChip(count: stars, compact: true)
-            } else {
-                Text("Let's play!")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(game.theme.accent))
-            }
+            // Big chunky Play button
+            Text(stars > 0 ? "Play Again!" : "Play!")
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule().fill(
+                        LinearGradient(
+                            colors: [game.theme.accent, game.theme.accent.opacity(0.75)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                )
+                .overlay(
+                    Capsule().stroke(.white.opacity(0.6), lineWidth: 2)
+                )
+                .shadow(color: game.theme.accent.opacity(0.45), radius: 5, y: 3)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 14)
         .background(
-            RoundedRectangle(cornerRadius: 28)
-                .fill(.white)
-                .shadow(color: game.theme.accent.opacity(0.3), radius: 10, y: 6)
+            RoundedRectangle(cornerRadius: 30)
+                .fill(
+                    LinearGradient(
+                        colors: [.white, game.theme.accent.opacity(0.06)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .shadow(color: game.theme.accent.opacity(hoverGlow ? 0.5 : 0.28), radius: hoverGlow ? 18 : 12, y: 6)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(game.theme.accent.opacity(0.35), lineWidth: 2.5)
+            RoundedRectangle(cornerRadius: 30)
+                .stroke(
+                    LinearGradient(
+                        colors: [game.theme.accent.opacity(0.55), game.theme.accent.opacity(0.2)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 3
+                )
         )
-        .contentShape(RoundedRectangle(cornerRadius: 28))
+        .contentShape(RoundedRectangle(cornerRadius: 30))
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                hoverGlow = true
+            }
+        }
     }
 }
 
@@ -422,22 +605,50 @@ struct SkyScene: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.62, green: 0.85, blue: 1.0),
-                    Color(red: 0.85, green: 0.94, blue: 1.0),
-                    Color(red: 0.99, green: 0.97, blue: 0.90),
+                    Color(red: 0.55, green: 0.82, blue: 1.0),
+                    Color(red: 0.75, green: 0.9, blue: 1.0),
+                    Color(red: 0.92, green: 0.96, blue: 1.0),
+                    Color(red: 0.99, green: 0.97, blue: 0.88),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
+            RainbowArc()
+
             DriftingClouds()
 
             RollingHills()
 
-            FloatingEmojiLayer(emoji: ["🦋", "⭐", "🌸"])
+            FloatingEmojiLayer(emoji: ["🦋", "⭐", "🌸", "🌈"])
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
+    }
+}
+
+struct RainbowArc: View {
+    private let colors: [Color] = [
+        Color(red: 0.95, green: 0.3, blue: 0.3).opacity(0.2),
+        Color(red: 0.96, green: 0.55, blue: 0.1).opacity(0.2),
+        Color(red: 0.95, green: 0.85, blue: 0.1).opacity(0.2),
+        Color(red: 0.3, green: 0.75, blue: 0.3).opacity(0.2),
+        Color(red: 0.3, green: 0.55, blue: 0.95).opacity(0.2),
+        Color(red: 0.55, green: 0.3, blue: 0.85).opacity(0.18),
+    ]
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(Array(colors.enumerated()), id: \.offset) { i, color in
+                    Circle()
+                        .stroke(color, lineWidth: 12)
+                        .frame(width: geo.size.width * 0.9 + CGFloat(i) * 24, height: geo.size.width * 0.9 + CGFloat(i) * 24)
+                        .offset(y: -geo.size.width * 0.25)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
     }
 }
 
@@ -663,13 +874,33 @@ struct RollingHills: View {
         GeometryReader { geo in
             ZStack {
                 Ellipse()
-                    .fill(Color(red: 0.65, green: 0.87, blue: 0.55).opacity(0.5))
-                    .frame(width: geo.size.width * 1.6, height: 280)
-                    .position(x: geo.size.width * 0.15, y: geo.size.height + 70)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.6, green: 0.88, blue: 0.5), Color(red: 0.5, green: 0.82, blue: 0.4)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(width: geo.size.width * 1.6, height: 300)
+                    .position(x: geo.size.width * 0.15, y: geo.size.height + 80)
+
                 Ellipse()
-                    .fill(Color(red: 0.55, green: 0.82, blue: 0.45).opacity(0.45))
-                    .frame(width: geo.size.width * 1.6, height: 240)
-                    .position(x: geo.size.width * 0.9, y: geo.size.height + 60)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.5, green: 0.85, blue: 0.4), Color(red: 0.4, green: 0.75, blue: 0.35)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(width: geo.size.width * 1.6, height: 260)
+                    .position(x: geo.size.width * 0.9, y: geo.size.height + 70)
+
+                HStack(spacing: 80) {
+                    Text("🌳").font(.system(size: 40)).opacity(0.5)
+                    Text("🌻").font(.system(size: 28)).opacity(0.5)
+                    Text("🌳").font(.system(size: 36)).opacity(0.4)
+                    Text("🌷").font(.system(size: 26)).opacity(0.5)
+                    Text("🌲").font(.system(size: 42)).opacity(0.45)
+                }
+                .position(x: geo.size.width * 0.5, y: geo.size.height - 30)
             }
         }
     }

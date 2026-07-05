@@ -112,6 +112,14 @@ struct EmotionsGameView: View {
     @State private var quizStreak = 0
     @State private var quizResult: Bool? = nil
     @State private var quizType: QuizType = .nameToFace
+    @State private var progression = GameProgression()
+
+    private let quizHints = [
+        "Look at the face's eyes and mouth!",
+        "How would YOU feel in that situation?",
+        "Think about what makes each feeling special!",
+        "You understand feelings so well now!",
+    ]
 
     private let theme = GameTheme.emotions
 
@@ -155,12 +163,16 @@ struct EmotionsGameView: View {
             }
 
             if gameMode == .quiz, quizResult == true, let quiz = quizEmotion {
-                CelebrationOverlay(message: "Correct! That's \(quiz.name)!", emoji: quiz.face)
+                CelebrationOverlayEnhanced(message: "Correct! That's \(quiz.name)!", emoji: quiz.face)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Emotions")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Emotions", theme: theme)
         .onDisappear {
             SpeechHelper.stop()
         }
@@ -289,9 +301,19 @@ struct EmotionsGameView: View {
     // MARK: - Quiz Mode
     var quizView: some View {
         VStack(spacing: 0) {
+            GameProgressHeader(
+                level: progression.level,
+                correctInLevel: progression.correctInLevel,
+                neededForNextLevel: progression.neededForNextLevel,
+                theme: theme,
+                hint: progression.currentHint(from: quizHints)
+            )
+            .padding(.horizontal, 24)
+            .padding(.top, 4)
+
             HStack(spacing: 16) {
-                StarCounterChip(count: quizScore)
-                StreakBadge(streak: quizStreak)
+                StarCounterChipEnhanced(count: quizScore)
+                StreakBadgeEnhanced(streak: quizStreak)
             }
             .padding(.top, 8)
 
@@ -534,13 +556,16 @@ struct EmotionsGameView: View {
         if option.name == quizEmotion?.name {
             quizScore += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation(.spring()) {
                 quizStreak += 1
                 quizResult = true
             }
-            if quizStreak > 0, quizStreak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if quizStreak > 0, quizStreak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 quizScore += 1
                 SoundEngine.shared.play(.streak)
@@ -548,7 +573,9 @@ struct EmotionsGameView: View {
             } else {
                 SpeechHelper.speak("That's \(option.name)!")
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            let delay = progression.showLevelUp ? 2.5 : 2.0
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation { newQuizRound() }
             }
         } else {

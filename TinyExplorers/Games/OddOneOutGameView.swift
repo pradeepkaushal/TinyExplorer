@@ -54,6 +54,14 @@ struct OddOneOutGameView: View {
     @State private var showExplanation = false
     @State private var shuffledItems: [(item: String, originalIndex: Int)] = []
     @State private var roundNumber = 0
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Find the one that doesn't belong!",
+        "What's different about one of these?",
+        "Think about what group they belong to!",
+        "You're a spotting superstar now!",
+    ]
 
     private let theme = GameTheme.oddOneOut
 
@@ -67,10 +75,10 @@ struct OddOneOutGameView: View {
             PlayfulBackground(theme: .oddOneOut)
 
             VStack(spacing: 0) {
-                // Score
+                // Score + progression
                 HStack(spacing: 14) {
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
 
                     Spacer()
 
@@ -90,6 +98,16 @@ struct OddOneOutGameView: View {
                 }
                 .padding(.horizontal, 40)
                 .padding(.top, 12)
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
 
                 Spacer(minLength: 16)
 
@@ -193,9 +211,13 @@ struct OddOneOutGameView: View {
                 ConfettiView()
                     .zIndex(5)
             }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
-        .navigationTitle("Odd One Out")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Odd One Out", theme: theme)
         .onAppear {
             shuffledRounds = rounds.shuffled()
             setupRound()
@@ -230,6 +252,7 @@ struct OddOneOutGameView: View {
 
         if originalIndex == currentRound.oddIndex {
             StarBank.shared.award(1, to: GameTheme.oddOneOut.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.win)
             withAnimation {
@@ -237,11 +260,15 @@ struct OddOneOutGameView: View {
                 score += 1
                 streak += 1
             }
-            if streak > 0 && streak % 5 == 0 {
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: GameTheme.oddOneOut.key)
                 SoundEngine.shared.play(.streak)
             }
-            SpeechHelper.speak(currentRound.explanation)
+            if !progression.showLevelUp {
+                SpeechHelper.speak(currentRound.explanation)
+            }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)

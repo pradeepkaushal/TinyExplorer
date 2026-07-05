@@ -49,6 +49,14 @@ struct WordBuilderGameView: View {
     @State private var celebrating = false
     @State private var score = 0
     @State private var queue: [SpellWord] = []
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "Tap the letters in order!",
+        "Say each letter sound out loud!",
+        "Look at the picture for a clue!",
+        "You're spelling like a pro now!",
+    ]
 
     private let theme = GameTheme.spelling
 
@@ -58,17 +66,18 @@ struct WordBuilderGameView: View {
 
             VStack(spacing: 18) {
                 HStack(spacing: 12) {
-                    ThemedSegmentedPicker(
-                        items: Level.allCases.map { (title: $0.rawValue, value: $0) },
-                        selection: $level,
-                        accent: theme.accent
-                    )
-                    .onChange(of: level) { _ in
-                        SoundEngine.shared.play(.pop)
-                        startRound(newLevel: true)
-                    }
-                    StarCounterChip(count: score)
+                    StarCounterChipEnhanced(count: score)
+                    Spacer()
                 }
+
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
 
                 MascotBubble(theme: theme, text: "Spell \(current.display)!", mascotSize: 50)
 
@@ -145,23 +154,30 @@ struct WordBuilderGameView: View {
             .padding(.horizontal, 30)
 
             if celebrating {
-                CelebrationOverlay(message: current.spelled, emoji: current.emoji)
+                CelebrationOverlayEnhanced(message: current.spelled, emoji: current.emoji)
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Spell It!")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Spell It!", theme: theme)
         .onAppear { startRound(newLevel: true) }
         .onDisappear { SpeechHelper.stop() }
     }
 
-    private var words: [SpellWord] {
-        switch level {
-        case .easy: return Self.easyWords
-        case .medium: return Self.mediumWords
-        case .hard: return Self.hardWords
+    /// Auto-scales word difficulty based on progression level.
+    private var currentWords: [SpellWord] {
+        switch progression.level {
+        case 1...2: return Self.easyWords
+        case 3...5: return Self.mediumWords
+        default: return Self.hardWords
         }
     }
+
+    private var words: [SpellWord] { currentWords }
 
     private func startRound(newLevel: Bool = false) {
         if newLevel || queue.isEmpty { queue = words.shuffled() }
@@ -189,14 +205,28 @@ struct WordBuilderGameView: View {
             if filledCount == current.word.count {
                 score += 1
                 StarBank.shared.award(1, to: theme.key)
+                progression.registerCorrect()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     Haptics.success()
                     SoundEngine.shared.play(.win)
-                    SpeechHelper.cheer(current.spelled)
+                    if !progression.showLevelUp {
+                        SpeechHelper.cheer(current.spelled)
+                    }
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                         celebrating = true
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
+                    let delay = progression.showLevelUp ? 2.5 : 2.4
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        progression.clearLevelUp()
+                        // If leveled up, switch to harder words
+                        let currentWord = current.word
+                        if progression.level <= 2 && !Self.easyWords.contains(where: { $0.word == currentWord }) {
+                            queue = Self.easyWords.shuffled()
+                        } else if progression.level > 2 && progression.level <= 5 && !Self.mediumWords.contains(where: { $0.word == currentWord }) {
+                            queue = Self.mediumWords.shuffled()
+                        } else if progression.level > 5 && !Self.hardWords.contains(where: { $0.word == currentWord }) {
+                            queue = Self.hardWords.shuffled()
+                        }
                         withAnimation { startRound() }
                     }
                 }

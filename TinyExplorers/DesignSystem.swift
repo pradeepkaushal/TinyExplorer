@@ -291,19 +291,25 @@ struct MascotBubble: View {
                     .frame(width: 14, height: 22)
                     .offset(x: 1)
                 Text(text)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                    .font(.system(size: 21, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(red: 0.22, green: 0.27, blue: 0.42))
                     .multilineTextAlignment(.leading)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
                     .background(
-                        RoundedRectangle(cornerRadius: 20)
+                        RoundedRectangle(cornerRadius: 22)
                             .fill(.white)
-                            .shadow(color: theme.accent.opacity(0.25), radius: 6, y: 3)
+                            .shadow(color: theme.accent.opacity(0.2), radius: 8, y: 4)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(theme.accent.opacity(0.3), lineWidth: 2)
+                        RoundedRectangle(cornerRadius: 22)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [theme.accent.opacity(0.4), theme.accent.opacity(0.15)],
+                                    startPoint: .topLeading, endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2.5
+                            )
                     )
             }
         }
@@ -339,13 +345,18 @@ struct ThemedSegmentedPicker<V: Hashable>: View {
                     }
                 } label: {
                     Text(item.title)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundColor(selection == item.value ? .white : accent)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 9)
                         .background(
-                            Capsule().fill(selection == item.value ? accent : .clear)
+                            Capsule().fill(
+                                selection == item.value
+                                    ? LinearGradient(colors: [accent, accent.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                                    : LinearGradient(colors: [.clear], startPoint: .top, endPoint: .bottom)
+                            )
                         )
+                        .shadow(color: selection == item.value ? accent.opacity(0.4) : .clear, radius: 4, y: 2)
                 }
                 .buttonStyle(SquishyButtonStyle(scale: 0.95))
             }
@@ -353,8 +364,12 @@ struct ThemedSegmentedPicker<V: Hashable>: View {
         .padding(4)
         .background(
             Capsule()
-                .fill(.white.opacity(0.85))
-                .shadow(color: accent.opacity(0.2), radius: 4, y: 2)
+                .fill(.white.opacity(0.88))
+                .shadow(color: accent.opacity(0.15), radius: 6, y: 3)
+        )
+        .overlay(
+            Capsule()
+                .stroke(accent.opacity(0.15), lineWidth: 1.5)
         )
     }
 }
@@ -600,5 +615,726 @@ struct ConfettiView: View {
         }
         .allowsHitTesting(false)
         .onAppear { animate = true }
+    }
+}
+
+// MARK: - Level system
+
+enum LevelSystem {
+    static let xpPerLevel: [Int] = [
+        0, 10, 25, 45, 70, 100, 140, 185, 240, 300,
+        370, 450, 540, 640, 750, 880, 1020, 1180, 1360, 1560
+    ]
+
+    static func level(for totalStars: Int) -> Int {
+        for (i, threshold) in xpPerLevel.enumerated().reversed() {
+            if totalStars >= threshold { return i + 1 }
+        }
+        return 1
+    }
+
+    static func xpForCurrentLevel(_ totalStars: Int) -> Int {
+        let lvl = level(for: totalStars)
+        let base = lvl > 0 && lvl <= xpPerLevel.count ? xpPerLevel[lvl - 1] : 0
+        return totalStars - base
+    }
+
+    static func xpNeededForCurrentLevel(_ totalStars: Int) -> Int {
+        let lvl = level(for: totalStars)
+        if lvl >= xpPerLevel.count { return 100 }
+        return xpPerLevel[lvl] - xpPerLevel[lvl - 1]
+    }
+
+    static func progress(for totalStars: Int) -> Double {
+        let needed = xpNeededForCurrentLevel(totalStars)
+        guard needed > 0 else { return 1.0 }
+        return min(1.0, Double(xpForCurrentLevel(totalStars)) / Double(needed))
+    }
+
+    static func title(for level: Int) -> String {
+        switch level {
+        case 1: return "Tiny Explorer"
+        case 2: return "Curious Cub"
+        case 3: return "Star Seeker"
+        case 4: return "Puzzle Pro"
+        case 5: return "Brain Builder"
+        case 6: return "Math Wizard"
+        case 7: return "Word Master"
+        case 8: return "Super Scholar"
+        case 9: return "Genius Junior"
+        case 10...: return "Legend!"
+        default: return "Tiny Explorer"
+        }
+    }
+}
+
+// MARK: - XP Progress bar
+
+struct XPProgressBar: View {
+    let progress: Double
+    var height: CGFloat = 14
+    var showLabel: Bool = true
+    var accent: Color = Color(red: 0.35, green: 0.75, blue: 0.35)
+
+    @State private var animatedProgress: Double = 0
+    @State private var shimmer = false
+
+    var body: some View {
+        VStack(spacing: 4) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.black.opacity(0.08))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [accent, accent.opacity(0.8), Color(red: 1.0, green: 0.85, blue: 0.3)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * animatedProgress)
+                        .overlay(
+                            GeometryReader { g in
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.white.opacity(0.5), .clear],
+                                            startPoint: .top, endPoint: .bottom
+                                        )
+                                    )
+                                    .frame(width: g.size.width)
+                            }
+                        )
+                        .overlay(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.clear, .white.opacity(0.6), .clear],
+                                        startPoint: .leading, endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 40)
+                                .offset(x: shimmer ? geo.size.width * animatedProgress - 40 : -40)
+                                .mask(Capsule().frame(width: geo.size.width * animatedProgress))
+                        )
+                }
+            }
+            .frame(height: height)
+            .shadow(color: accent.opacity(0.4), radius: 4, y: 2)
+
+            if showLabel {
+                Text("\(Int(progress * 100))% to next level")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.7)) {
+                animatedProgress = progress
+            }
+            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                shimmer = true
+            }
+        }
+        .onChange(of: progress) { newValue in
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                animatedProgress = newValue
+            }
+        }
+    }
+}
+
+// MARK: - Level badge
+
+struct LevelBadge: View {
+    let level: Int
+    var size: CGFloat = 64
+
+    @State private var pulse = false
+
+    private var ringColor: Color {
+        switch level {
+        case 1...3: return Color(red: 0.55, green: 0.75, blue: 0.35)
+        case 4...6: return Color(red: 0.3, green: 0.6, blue: 0.95)
+        case 7...9: return Color(red: 0.85, green: 0.55, blue: 0.1)
+        default: return Color(red: 0.9, green: 0.3, blue: 0.5)
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [ringColor.opacity(0.3), ringColor.opacity(0.1)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
+
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [ringColor, ringColor.opacity(0.6)],
+                        startPoint: .top, endPoint: .bottom
+                    ),
+                    lineWidth: 4
+                )
+                .frame(width: size - 4, height: size - 4)
+                .scaleEffect(pulse ? 1.08 : 1.0)
+                .opacity(pulse ? 0.6 : 1.0)
+                .animation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true), value: pulse)
+
+            VStack(spacing: 0) {
+                Text("LVL")
+                    .font(.system(size: size * 0.16, weight: .bold, design: .rounded))
+                    .foregroundColor(ringColor.opacity(0.8))
+                Text("\(level)")
+                    .font(.system(size: size * 0.38, weight: .heavy, design: .rounded))
+                    .foregroundColor(ringColor)
+            }
+        }
+        .shadow(color: ringColor.opacity(0.4), radius: 8, y: 3)
+        .onAppear { pulse = true }
+    }
+}
+
+// MARK: - Glow modifier
+
+struct GlowModifier: ViewModifier {
+    var color: Color
+    var radius: CGFloat = 12
+    var intensity: Double = 0.5
+    @State private var pulse = false
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(intensity * (pulse ? 0.7 : 1.0)), radius: radius * (pulse ? 1.2 : 1.0), y: radius * 0.4)
+            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulse)
+            .onAppear { pulse = true }
+    }
+}
+
+extension View {
+    func glow(_ color: Color, radius: CGFloat = 12, intensity: Double = 0.5) -> some View {
+        modifier(GlowModifier(color: color, radius: radius, intensity: intensity))
+    }
+}
+
+// MARK: - Shimmer modifier
+
+struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = -1
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geo in
+                    LinearGradient(
+                        colors: [.clear, .white.opacity(0.4), .clear],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 0.4)
+                    .offset(x: phase * geo.size.width * 1.4 - geo.size.width * 0.2)
+                    .mask(content)
+                }
+            )
+            .onAppear {
+                withAnimation(.linear(duration: 2.0).repeatForever(autoreverses: false).delay(1.0)) {
+                    phase = 1
+                }
+            }
+    }
+}
+
+extension View {
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
+    }
+}
+
+// MARK: - Enhanced star counter
+
+struct StarCounterChipEnhanced: View {
+    let count: Int
+    var compact = false
+
+    @State private var bounce = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text("⭐")
+                .font(.system(size: compact ? 16 : 22))
+                .scaleEffect(bounce ? 1.2 : 1.0)
+            Text("\(count)")
+                .font(.system(size: compact ? 17 : 24, weight: .heavy, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(red: 0.85, green: 0.6, blue: 0.0), Color(red: 0.95, green: 0.75, blue: 0.1)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+        }
+        .padding(.horizontal, compact ? 12 : 18)
+        .padding(.vertical, compact ? 6 : 10)
+        .background(
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [Color(red: 1.0, green: 0.97, blue: 0.85), .white],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .shadow(color: Color(red: 0.9, green: 0.7, blue: 0.1).opacity(0.35), radius: 6, y: 3)
+        )
+        .overlay(
+            Capsule()
+                .stroke(Color(red: 0.9, green: 0.7, blue: 0.2).opacity(0.4), lineWidth: 2)
+        )
+        .onChange(of: count) { _ in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.4)) { bounce = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation { bounce = false }
+            }
+        }
+    }
+}
+
+// MARK: - Enhanced streak badge
+
+struct StreakBadgeEnhanced: View {
+    let streak: Int
+
+    @State private var flamePulse = false
+
+    var body: some View {
+        if streak >= 2 {
+            HStack(spacing: 5) {
+                Text("🔥")
+                    .font(.system(size: 22))
+                    .scaleEffect(flamePulse ? 1.25 : 1.0)
+                    .animation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true), value: flamePulse)
+                Text("x\(streak)")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.55, blue: 0.1), Color(red: 0.95, green: 0.25, blue: 0.15)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: .orange.opacity(0.6), radius: flamePulse ? 10 : 6, y: 3)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.white.opacity(0.5), lineWidth: 2)
+            )
+            .transition(.scale.combined(with: .opacity))
+            .onAppear { flamePulse = true }
+        }
+    }
+}
+
+// MARK: - Enhanced celebration
+
+struct CelebrationOverlayEnhanced: View {
+    let message: String
+    var emoji: String = "🎉"
+
+    @State private var scale = false
+
+    var body: some View {
+        ZStack {
+            ConfettiView()
+
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text(emoji)
+                    .font(.system(size: 80))
+                    .scaleEffect(scale ? 1.15 : 1.0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.5).repeatForever(autoreverses: true), value: scale)
+
+                Text(message)
+                    .font(.system(size: 38, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(red: 1.0, green: 0.5, blue: 0.2), Color(red: 0.95, green: 0.3, blue: 0.5), Color(red: 0.6, green: 0.3, blue: 0.9)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .multilineTextAlignment(.center)
+                    .shadow(color: .white.opacity(0.8), radius: 2)
+
+                HStack(spacing: 10) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Text("⭐")
+                            .font(.system(size: 36))
+                            .scaleEffect(scale ? 1.1 : 0.95)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.5).delay(Double(i) * 0.1).repeatForever(autoreverses: true), value: scale)
+                    }
+                }
+            }
+            .padding(.horizontal, 50)
+            .padding(.vertical, 36)
+            .background(
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.25), radius: 20, y: 10)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 32)
+                    .stroke(
+                        LinearGradient(
+                            colors: [.yellow, .orange, .pink],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 4
+                    )
+            )
+            .scaleEffect(scale ? 1.0 : 0.8)
+            .opacity(scale ? 1.0 : 0.0)
+        }
+        .zIndex(10)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) { scale = true }
+        }
+    }
+}
+
+// MARK: - Kid-friendly navigation bar
+
+/// Replaces the plain system navigation bar with a colorful gradient bar
+/// and a big, chunky back button that small fingers can easily hit.
+/// Apply via `.kidNavigation(title:theme:)` on any pushed screen.
+struct KidNavigationModifier: ViewModifier {
+    let title: String
+    let theme: GameTheme
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(title)
+                        .font(.system(size: 24, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                            Text("Back")
+                                .font(.system(size: 19, weight: .heavy, design: .rounded))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 9)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.25))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.7), lineWidth: 2.5)
+                        )
+                        .shadow(color: .black.opacity(0.15), radius: 3, y: 2)
+                    }
+                }
+            }
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(
+                LinearGradient(
+                    colors: [theme.accent, theme.accent.opacity(0.75)],
+                    startPoint: .top, endPoint: .bottom
+                ),
+                for: .navigationBar
+            )
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+extension View {
+    /// Styled navigation bar with a themed gradient background and a chunky
+    /// white back button. Replaces `.navigationTitle` + `.navigationBarTitleDisplayMode`.
+    func kidNavigation(title: String, theme: GameTheme) -> some View {
+        modifier(KidNavigationModifier(title: title, theme: theme))
+    }
+}
+
+// MARK: - In-game progression system
+
+/// Lightweight per-session level tracker. Each game owns one via `@State`.
+/// Call `registerCorrect()` on every right answer; the level auto-advances
+/// and `showLevelUp` flips to true so the view can present a celebration.
+struct GameProgression {
+    var level: Int = 1
+    var correctInLevel: Int = 0
+    var totalCorrect: Int = 0
+    var showLevelUp: Bool = false
+
+    /// Correct answers needed to advance from the current level.
+    var neededForNextLevel: Int { 3 + level } // L1→4, L2→5, L3→6 …
+
+    /// 0.0–1.0 progress toward the next level.
+    var progress: Double {
+        guard neededForNextLevel > 0 else { return 1.0 }
+        return min(1.0, Double(correctInLevel) / Double(neededForNextLevel))
+    }
+
+    /// A rotating tip for the current level. Games pass their own `hints`.
+    func currentHint(from hints: [String]) -> String {
+        guard !hints.isEmpty else { return "" }
+        let idx = (level - 1) % hints.count
+        return hints[idx]
+    }
+
+    /// Register a correct answer; levels up when the threshold is reached.
+    mutating func registerCorrect() {
+        correctInLevel += 1
+        totalCorrect += 1
+        if correctInLevel >= neededForNextLevel {
+            level += 1
+            correctInLevel = 0
+            showLevelUp = true
+        }
+    }
+
+    /// Clear the level-up flag after the celebration has been shown.
+    mutating func clearLevelUp() { showLevelUp = false }
+}
+
+/// Compact level + progress + hint header shown at the top of every game.
+/// It tells the kid exactly where they are and what to do next.
+struct GameProgressHeader: View {
+    let level: Int
+    let correctInLevel: Int
+    let neededForNextLevel: Int
+    let theme: GameTheme
+    let hint: String
+
+    @State private var bob = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Level badge — pulsing circle
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [theme.accent, theme.accent.opacity(0.7)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 46, height: 46)
+                    .shadow(color: theme.accent.opacity(0.4), radius: 5, y: 3)
+
+                Circle()
+                    .stroke(.white.opacity(0.8), lineWidth: 2.5)
+                    .frame(width: 42, height: 42)
+
+                VStack(spacing: 0) {
+                    Text("LVL")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
+                    Text("\(level)")
+                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                }
+            }
+            .scaleEffect(bob ? 1.06 : 1.0)
+            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: bob)
+
+            // Progress bar + "X to level up"
+            VStack(alignment: .leading, spacing: 3) {
+                XPProgressBar(
+                    progress: neededForNextLevel > 0
+                        ? min(1.0, Double(correctInLevel) / Double(neededForNextLevel))
+                        : 1.0,
+                    height: 12,
+                    showLabel: false,
+                    accent: theme.accent
+                )
+
+                Text("\(correctInLevel)/\(neededForNextLevel) to level up!")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(theme.accent.opacity(0.85))
+            }
+
+            // Hint bubble — guides the kid
+            if !hint.isEmpty {
+                HStack(spacing: 5) {
+                    Text("💡")
+                        .font(.system(size: 16))
+                    Text(hint)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 1.0, green: 0.97, blue: 0.82), .white.opacity(0.9)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.08), radius: 3, y: 2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(red: 0.95, green: 0.8, blue: 0.25).opacity(0.5), lineWidth: 2)
+                )
+                .frame(maxWidth: 280, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white.opacity(0.88))
+                .shadow(color: theme.accent.opacity(0.15), radius: 5, y: 3)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(theme.accent.opacity(0.2), lineWidth: 2)
+        )
+        .onAppear { bob = true }
+    }
+}
+
+/// Full-screen celebration shown when the kid levels up.
+struct LevelUpOverlay: View {
+    let level: Int
+    let theme: GameTheme
+
+    @State private var appear = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text("🆙")
+                    .font(.system(size: 72))
+                    .scaleEffect(appear ? 1.2 : 0.5)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.5).repeatForever(autoreverses: true), value: appear)
+
+                Text("Level \(level)!")
+                    .font(.system(size: 42, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [theme.accent, Color(red: 0.95, green: 0.5, blue: 0.2)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+
+                Text(levelPraise)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                    .multilineTextAlignment(.center)
+
+                HStack(spacing: 8) {
+                    ForEach(0..<3, id: \.self) { _ in Text("⭐").font(.system(size: 32)) }
+                }
+            }
+            .padding(.horizontal, 50)
+            .padding(.vertical, 36)
+            .background(
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(.white)
+                    .shadow(color: .black.opacity(0.25), radius: 20, y: 10)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 32)
+                    .stroke(
+                        LinearGradient(
+                            colors: [theme.accent, Color(red: 0.95, green: 0.7, blue: 0.15)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 4
+                    )
+            )
+            .scaleEffect(appear ? 1.0 : 0.7)
+        }
+        .zIndex(20)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) { appear = true }
+            Haptics.success()
+            SoundEngine.shared.play(.win)
+            SpeechHelper.cheer("Level \(level)! \(levelPraise)")
+        }
+    }
+
+    private var levelPraise: String {
+        let praises = [
+            "You're getting smarter!",
+            "Amazing progress!",
+            "You're a quick learner!",
+            "Keep it up, superstar!",
+            "Wow, you're so good at this!",
+        ]
+        return praises[(level - 2) % praises.count]
+    }
+}
+
+// MARK: - Game card progress indicator
+
+struct GameProgressRing: View {
+    let stars: Int
+    var size: CGFloat = 32
+
+    private var progress: Double {
+        min(1.0, Double(stars) / 50.0)
+    }
+
+    private var ringColor: Color {
+        if stars >= 50 { return .yellow }
+        if stars >= 25 { return .gray }
+        if stars >= 10 { return Color(red: 0.8, green: 0.5, blue: 0.2) }
+        return Color.gray.opacity(0.3)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.15), lineWidth: 3)
+                .frame(width: size, height: size)
+
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(ringColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .frame(width: size, height: size)
+                .rotationEffect(.degrees(-90))
+
+            if let medal = StarBadge.medal(for: stars) {
+                Text(medal)
+                    .font(.system(size: size * 0.55))
+            } else {
+                Text("\(stars)")
+                    .font(.system(size: size * 0.35, weight: .bold, design: .rounded))
+                    .foregroundColor(ringColor)
+            }
+        }
     }
 }

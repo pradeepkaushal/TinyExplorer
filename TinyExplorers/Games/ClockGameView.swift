@@ -17,6 +17,14 @@ struct ClockGameView: View {
     @State private var celebrating = false
     @State private var wrongAnswer: String? = nil
     @State private var celebrationMessage = Encouragement.random()
+    @State private var progression = GameProgression()
+
+    private let hints = [
+        "The SHORT hand shows the hour!",
+        "The LONG hand points to 12 for o'clock!",
+        "Half past means the long hand is at 6!",
+        "You're a time-telling pro now!",
+    ]
 
     private let theme = GameTheme.clock
 
@@ -31,18 +39,18 @@ struct ClockGameView: View {
             PlayfulBackground(theme: theme)
 
             VStack(spacing: 18) {
+                GameProgressHeader(
+                    level: progression.level,
+                    correctInLevel: progression.correctInLevel,
+                    neededForNextLevel: progression.neededForNextLevel,
+                    theme: theme,
+                    hint: progression.currentHint(from: hints)
+                )
+                .padding(.horizontal, 24)
+
                 HStack(spacing: 12) {
-                    ThemedSegmentedPicker(
-                        items: Level.allCases.map { (title: $0.rawValue, value: $0) },
-                        selection: $level,
-                        accent: theme.accent
-                    )
-                    .onChange(of: level) { _ in
-                        SoundEngine.shared.play(.pop)
-                        newRound()
-                    }
-                    StarCounterChip(count: score)
-                    StreakBadge(streak: streak)
+                    StarCounterChipEnhanced(count: score)
+                    StreakBadgeEnhanced(streak: streak)
                 }
 
                 MascotBubble(theme: theme, text: "What time is it?", mascotSize: 50)
@@ -98,12 +106,16 @@ struct ClockGameView: View {
             .padding(.horizontal, 30)
 
             if celebrating {
-                CelebrationOverlay(message: celebrationMessage, emoji: "⏰")
+                CelebrationOverlayEnhanced(message: celebrationMessage, emoji: "⏰")
+                    .transition(.scale.combined(with: .opacity))
+            }
+
+            if progression.showLevelUp {
+                LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Clock Time")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Clock Time", theme: theme)
         .onAppear { newRound() }
         .onDisappear { SpeechHelper.stop() }
     }
@@ -112,12 +124,13 @@ struct ClockGameView: View {
         celebrating = false
         wrongAnswer = nil
         hour = Int.random(in: 1...12)
-        halfPast = level == .halves && Bool.random()
+        // Auto-progression: half past unlocks at level 2+
+        halfPast = progression.level >= 2 && Bool.random()
 
         var opts = Set([answer])
         while opts.count < 4 {
             let h = Int.random(in: 1...12)
-            let half = level == .halves && Bool.random()
+            let half = progression.level >= 2 && Bool.random()
             opts.insert(Self.label(hour: h, halfPast: half))
         }
         options = Array(opts).shuffled()
@@ -131,10 +144,13 @@ struct ClockGameView: View {
             score += 1
             streak += 1
             StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
-            SpeechHelper.cheer(halfPast ? "Yes! It's half past \(hour)!" : "Yes! It's \(hour) o'clock!")
-            if streak > 0 && streak % 5 == 0 {
+            if !progression.showLevelUp {
+                SpeechHelper.cheer(halfPast ? "Yes! It's half past \(hour)!" : "Yes! It's \(hour) o'clock!")
+            }
+            if !progression.showLevelUp, streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                     SoundEngine.shared.play(.streak)
@@ -143,7 +159,9 @@ struct ClockGameView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 celebrating = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.9) {
+            let delay = progression.showLevelUp ? 2.5 : 1.9
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
                 withAnimation { newRound() }
             }
         } else {

@@ -30,34 +30,43 @@ struct StickerBookView: View {
             }
 
             if let sticker = justUnlocked {
-                CelebrationOverlay(message: "\(sticker.name) unlocked!", emoji: sticker.emoji)
+                CelebrationOverlayEnhanced(message: "\(sticker.name) unlocked!", emoji: sticker.emoji)
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .navigationTitle("Sticker Book")
-        .navigationBarTitleDisplayMode(.inline)
+        .kidNavigation(title: "Sticker Book", theme: theme)
         .onDisappear { SpeechHelper.stop() }
     }
 
     private var header: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             MascotBubble(
                 theme: theme,
                 text: bubbleText,
                 mascotSize: 60
             )
-            HStack(spacing: 12) {
-                StarCounterChip(count: starBank.available)
-                Text("\(album.unlockedCount) of \(StickerPack.totalStickerCount) collected")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.45, green: 0.35, blue: 0.15))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(
-                        Capsule()
-                            .fill(.white.opacity(0.9))
-                            .shadow(color: .black.opacity(0.08), radius: 3, y: 2)
+            HStack(spacing: 14) {
+                StarCounterChipEnhanced(count: starBank.available)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(album.unlockedCount) of \(StickerPack.totalStickerCount) collected")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(red: 0.45, green: 0.35, blue: 0.15))
+                    XPProgressBar(
+                        progress: Double(album.unlockedCount) / Double(StickerPack.totalStickerCount),
+                        height: 10,
+                        showLabel: false,
+                        accent: Color(red: 0.85, green: 0.6, blue: 0.05)
                     )
+                    .frame(width: 160)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(.white.opacity(0.9))
+                        .shadow(color: .black.opacity(0.08), radius: 3, y: 2)
+                )
             }
         }
         .padding(.top, 10)
@@ -72,13 +81,33 @@ struct StickerBookView: View {
 
     private func packSection(_ pack: StickerPack) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Text(pack.emoji).font(.system(size: 26))
+            HStack(spacing: 10) {
+                Text(pack.emoji).font(.system(size: 28))
                 Text(pack.title)
-                    .font(.system(size: 26, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(red: 0.2, green: 0.25, blue: 0.45), pack.accent],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
                 Spacer()
+                let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
+                Text("\(packUnlocked)/\(pack.stickers.count)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(pack.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(pack.accent.opacity(0.12)))
             }
+
+            let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
+            XPProgressBar(
+                progress: Double(packUnlocked) / Double(pack.stickers.count),
+                height: 8,
+                showLabel: false,
+                accent: pack.accent
+            )
 
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: 130, maximum: 180), spacing: 14)],
@@ -142,6 +171,8 @@ private struct StickerTile: View {
     let wobbling: Bool
     let action: () -> Void
 
+    @State private var glowPulse = false
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
@@ -150,50 +181,64 @@ private struct StickerTile: View {
                         .fill(
                             unlocked
                                 ? AnyShapeStyle(
-                                    LinearGradient(
-                                        colors: [accent.opacity(0.3), accent.opacity(0.12)],
-                                        startPoint: .topLeading, endPoint: .bottomTrailing
+                                    RadialGradient(
+                                        colors: [accent.opacity(0.35), accent.opacity(0.1)],
+                                        center: .center, startRadius: 5, endRadius: 45
                                     )
-                                )
-                                : AnyShapeStyle(Color.gray.opacity(0.12))
+                                  )
+                                : AnyShapeStyle(Color.gray.opacity(0.1))
                         )
-                        .frame(width: 78, height: 78)
+                        .frame(width: 80, height: 80)
+                        .shadow(color: unlocked ? accent.opacity(glowPulse ? 0.5 : 0.3) : .clear, radius: 8)
                     Text(unlocked ? sticker.emoji : "❓")
-                        .font(.system(size: unlocked ? 48 : 36))
+                        .font(.system(size: unlocked ? 50 : 36))
                         .opacity(unlocked ? 1 : 0.5)
+                        .scaleEffect(unlocked && glowPulse ? 1.05 : 1.0)
                 }
 
                 if unlocked {
                     Text(sticker.name)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                 } else {
-                    HStack(spacing: 3) {
-                        Text("⭐").font(.system(size: 13))
+                    HStack(spacing: 4) {
+                        Text("⭐").font(.system(size: 14))
                         Text("\(sticker.cost)")
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
                             .foregroundColor(.white)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
                     .background(
-                        Capsule().fill(affordable ? accent : Color.gray.opacity(0.55))
+                        Capsule().fill(
+                            affordable
+                                ? LinearGradient(colors: [accent, accent.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                                : LinearGradient(colors: [Color.gray.opacity(0.55), Color.gray.opacity(0.4)], startPoint: .top, endPoint: .bottom)
+                        )
                     )
+                    .shadow(color: affordable ? accent.opacity(0.4) : .clear, radius: 3, y: 2)
                 }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 22)
-                    .fill(.white.opacity(unlocked ? 1.0 : 0.75))
-                    .shadow(color: accent.opacity(unlocked ? 0.35 : 0.12), radius: 7, y: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: unlocked
+                                ? [.white, accent.opacity(0.06)]
+                                : [.white.opacity(0.8), .white.opacity(0.6)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .shadow(color: accent.opacity(unlocked ? 0.4 : 0.1), radius: 8, y: 4)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22)
                     .stroke(
-                        unlocked ? accent.opacity(0.5) : Color.gray.opacity(0.25),
+                        unlocked ? accent.opacity(0.6) : Color.gray.opacity(0.2),
                         style: unlocked
                             ? StrokeStyle(lineWidth: 2.5)
                             : StrokeStyle(lineWidth: 2.5, dash: [7, 5])
@@ -208,6 +253,13 @@ private struct StickerTile: View {
             )
         }
         .buttonStyle(SquishyButtonStyle(scale: 0.92))
+        .onAppear {
+            if unlocked {
+                withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                    glowPulse = true
+                }
+            }
+        }
     }
 }
 
@@ -223,14 +275,21 @@ struct BuddyPickerView: View {
             PlayfulBackground(theme: .stickers)
 
             VStack(spacing: 20) {
-                Text("Pick your buddy!")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
-                    .padding(.top, 30)
+                VStack(spacing: 8) {
+                    Text("Pick your buddy!")
+                        .font(.system(size: 38, weight: .heavy, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color(red: 0.2, green: 0.25, blue: 0.45), Color(red: 0.6, green: 0.4, blue: 0.2)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .padding(.top, 30)
 
-                Text("Your buddy explores with you")
-                    .font(.system(size: 20, weight: .medium, design: .rounded))
-                    .foregroundColor(Color(red: 0.35, green: 0.4, blue: 0.55))
+                    Text("Your buddy explores with you")
+                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .foregroundColor(Color(red: 0.4, green: 0.45, blue: 0.6))
+                }
 
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)],
@@ -269,37 +328,77 @@ private struct BuddyTile: View {
     let selected: Bool
     let action: () -> Void
 
+    @State private var glowPulse = false
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Text(buddy.emoji)
-                    .font(.system(size: 64))
+                ZStack {
+                    Circle()
+                        .fill(
+                            selected
+                                ? RadialGradient(
+                                    colors: [Color(red: 1.0, green: 0.9, blue: 0.5).opacity(0.5), .clear],
+                                    center: .center, startRadius: 5, endRadius: 45
+                                  )
+                                : RadialGradient(
+                                    colors: [Color.white.opacity(0.3), .clear],
+                                    center: .center, startRadius: 5, endRadius: 40
+                                  )
+                        )
+                        .frame(width: 80, height: 80)
+                    Text(buddy.emoji)
+                        .font(.system(size: 64))
+                }
+
                 Text(buddy.name)
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.25, green: 0.3, blue: 0.45))
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
+
                 if selected {
-                    Text("My buddy!")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color(red: 0.85, green: 0.6, blue: 0.05)))
+                    HStack(spacing: 4) {
+                        Text("✨")
+                            .font(.system(size: 12))
+                        Text("My buddy!")
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("✨")
+                            .font(.system(size: 12))
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 5)
+                    .background(
+                        Capsule().fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.9, green: 0.65, blue: 0.1), Color(red: 0.85, green: 0.55, blue: 0.05)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                    )
+                    .shadow(color: Color(red: 0.85, green: 0.6, blue: 0.05).opacity(0.5), radius: 4, y: 2)
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 150)
+            .frame(height: 160)
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(.white.opacity(selected ? 1.0 : 0.88))
+                    .fill(
+                        LinearGradient(
+                            colors: selected
+                                ? [.white, Color(red: 1.0, green: 0.96, blue: 0.85)]
+                                : [.white.opacity(0.92), .white.opacity(0.78)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
                     .shadow(
-                        color: Color(red: 0.85, green: 0.6, blue: 0.05).opacity(selected ? 0.45 : 0.15),
-                        radius: selected ? 10 : 5, y: 4
+                        color: Color(red: 0.85, green: 0.6, blue: 0.05).opacity(selected ? (glowPulse ? 0.55 : 0.35) : 0.12),
+                        radius: selected ? 12 : 5, y: 4
                     )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
                     .stroke(
-                        Color(red: 0.85, green: 0.6, blue: 0.05).opacity(selected ? 0.8 : 0.2),
+                        Color(red: 0.85, green: 0.6, blue: 0.05).opacity(selected ? 0.8 : 0.15),
                         lineWidth: selected ? 3.5 : 2
                     )
             )
@@ -307,6 +406,13 @@ private struct BuddyTile: View {
             .animation(.spring(response: 0.35, dampingFraction: 0.7), value: selected)
         }
         .buttonStyle(SquishyButtonStyle(scale: 0.92))
+        .onAppear {
+            if selected {
+                withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                    glowPulse = true
+                }
+            }
+        }
     }
 }
 
