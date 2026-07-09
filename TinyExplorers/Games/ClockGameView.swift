@@ -10,14 +10,17 @@ struct ClockGameView: View {
 
     @State private var level: Level = .hours
     @State private var hour = 3
-    @State private var halfPast = false
+    @State private var minute = 0
     @State private var options: [String] = []
     @State private var score = 0
     @State private var streak = 0
     @State private var celebrating = false
     @State private var wrongAnswer: String? = nil
+    @State private var lastAnswer: String? = nil
     @State private var celebrationMessage = Encouragement.random()
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.clock.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
 
     private let hints = [
         "The SHORT hand shows the hour!",
@@ -28,10 +31,15 @@ struct ClockGameView: View {
 
     private let theme = GameTheme.clock
 
-    private var answer: String { Self.label(hour: hour, halfPast: halfPast) }
+    private var answer: String { Self.label(hour: hour, minute: minute) }
 
-    static func label(hour: Int, halfPast: Bool) -> String {
-        halfPast ? "Half past \(hour)" : "\(hour) o'clock"
+    static func label(hour: Int, minute: Int) -> String {
+        switch minute {
+        case 15: return "quarter past \(hour)"
+        case 30: return "half past \(hour)"
+        case 45: return "quarter to \(hour % 12 + 1)"
+        default: return "\(hour) o'clock"
+        }
     }
 
     var body: some View {
@@ -51,13 +59,14 @@ struct ClockGameView: View {
                 HStack(spacing: 12) {
                     StarCounterChipEnhanced(count: score)
                     StreakBadgeEnhanced(streak: streak)
+    AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
                 }
 
                 MascotBubble(theme: theme, text: "What time is it?", mascotSize: 50)
 
                 Spacer(minLength: 0)
 
-                ClockFace(hour: hour, halfPast: halfPast, accent: theme.accent)
+                ClockFace(hour: hour, minute: minute, accent: theme.accent)
                     .frame(width: 300, height: 300)
                     .scaleEffect(celebrating ? 1.08 : 1.0)
                     .animation(.spring(response: 0.4, dampingFraction: 0.6), value: celebrating)
@@ -66,39 +75,44 @@ struct ClockGameView: View {
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 18), count: 2), spacing: 18) {
                     ForEach(options, id: \.self) { option in
-                        Button {
-                            pick(option)
-                        } label: {
-                            Text(option)
-                                .font(.system(size: 27, weight: .heavy, design: .rounded))
-                                .foregroundColor(theme.accent)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 82)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 22)
-                                        .fill(.white.opacity(wrongAnswer == option ? 0.6 : 0.94))
-                                        .shadow(color: theme.accent.opacity(0.25), radius: 6, y: 4)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 22)
-                                        .stroke(
-                                            wrongAnswer == option ? Color.red.opacity(0.5) : theme.accent.opacity(0.4),
-                                            lineWidth: 3
-                                        )
-                                )
-                                .rotationEffect(.degrees(wrongAnswer == option ? 3 : 0))
-                                .animation(
-                                    wrongAnswer == option
-                                        ? .easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)
-                                        : .default,
-                                    value: wrongAnswer
-                                )
+                        // Speaker sits beside the answer so a pre-reader can
+                        // hear each time without selecting it.
+                        HStack(spacing: 10) {
+                            SpeakOptionButton(text: option, accent: theme.accent)
+                            Button {
+                                pick(option)
+                            } label: {
+                                Text(option)
+                                    .font(.system(size: 27, weight: .heavy, design: .rounded))
+                                    .foregroundColor(theme.accent)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 82)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 22)
+                                            .fill(.white.opacity(wrongAnswer == option ? 0.6 : 0.94))
+                                            .shadow(color: theme.accent.opacity(0.25), radius: 6, y: 4)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 22)
+                                            .stroke(
+                                                wrongAnswer == option ? Color.red.opacity(0.5) : theme.accent.opacity(0.4),
+                                                lineWidth: 3
+                                            )
+                                    )
+                                    .rotationEffect(.degrees(wrongAnswer == option ? 3 : 0))
+                                    .animation(
+                                        wrongAnswer == option
+                                            ? .easeInOut(duration: 0.08).repeatCount(5, autoreverses: true)
+                                            : .default,
+                                        value: wrongAnswer
+                                    )
+                            }
+                            .buttonStyle(SquishyButtonStyle())
+                            .disabled(celebrating)
                         }
-                        .buttonStyle(SquishyButtonStyle())
-                        .disabled(celebrating)
                     }
                 }
-                .padding(.horizontal, 120)
+                .padding(.horizontal, 90)
 
                 Spacer(minLength: 0)
             }
@@ -114,6 +128,18 @@ struct ClockGameView: View {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        newRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .kidNavigation(title: "Clock Time", theme: theme)
         .onAppear { newRound() }
@@ -123,17 +149,48 @@ struct ClockGameView: View {
     private func newRound() {
         celebrating = false
         wrongAnswer = nil
-        hour = Int.random(in: 1...12)
-        // Auto-progression: half past unlocks at level 2+
-        halfPast = progression.level >= 2 && Bool.random()
+
+        // Difficulty tiers unlock more times as the level climbs.
+        let allowedMinutes: [Int] = progression.level <= 1 ? [0]
+            : progression.level <= 3 ? [0, 30]
+            : [0, 15, 30, 45]
+
+        // Re-roll until the new time differs from the previous prompt.
+        repeat {
+            hour = Int.random(in: 1...12)
+            minute = allowedMinutes.randomElement()!
+        } while Self.label(hour: hour, minute: minute) == lastAnswer
+
+        let optionCount = progression.level >= 4 ? 6 : 4
 
         var opts = Set([answer])
-        while opts.count < 4 {
+
+        // Higher levels use time-adjacent distractors so the hands must be
+        // read carefully instead of just glanced at.
+        if progression.level >= 3 {
+            var near: [String] = []
+            // Same hour, but a different allowed minute.
+            for m in allowedMinutes where m != minute {
+                near.append(Self.label(hour: hour, minute: m))
+            }
+            // Neighbouring hours, keeping the answer's minute.
+            for dh in [-1, 1] {
+                let h = (hour - 1 + dh + 12) % 12 + 1
+                near.append(Self.label(hour: h, minute: minute))
+            }
+            for candidate in near.shuffled() where opts.count < optionCount {
+                opts.insert(candidate)
+            }
+        }
+
+        // Fill any remaining slots with random times from the same tier.
+        while opts.count < optionCount {
             let h = Int.random(in: 1...12)
-            let half = progression.level >= 2 && Bool.random()
-            opts.insert(Self.label(hour: h, halfPast: half))
+            let m = allowedMinutes.randomElement()!
+            opts.insert(Self.label(hour: h, minute: m))
         }
         options = Array(opts).shuffled()
+        lastAnswer = answer
         SpeechHelper.speak("What time is it?")
     }
 
@@ -145,10 +202,11 @@ struct ClockGameView: View {
             streak += 1
             StarBank.shared.award(1, to: theme.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             if !progression.showLevelUp {
-                SpeechHelper.cheer(halfPast ? "Yes! It's half past \(hour)!" : "Yes! It's \(hour) o'clock!")
+                SpeechHelper.cheer("Yes! It's \(answer)!")
             }
             if !progression.showLevelUp, streak > 0 && streak % 5 == 0 {
                 StarBank.shared.award(1, to: theme.key)
@@ -162,12 +220,22 @@ struct ClockGameView: View {
             let delay = progression.showLevelUp ? 2.5 : 1.9
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                withAnimation { newRound() }
+                celebrating = false
+                if adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { newRound() }
+                }
             }
         } else {
             streak = 0
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            progression.registerWrong()
+            adventure.recordMiss()
             SpeechHelper.speak("Look at the little hand! Try again!")
             withAnimation { wrongAnswer = option }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
@@ -181,7 +249,7 @@ struct ClockGameView: View {
 /// thin minute hand, smiling center.
 struct ClockFace: View {
     let hour: Int
-    let halfPast: Bool
+    let minute: Int
     let accent: Color
 
     var body: some View {
@@ -216,19 +284,19 @@ struct ClockFace: View {
                         .rotationEffect(.degrees(Double(n) * 30))
                 }
 
-                // Hour hand (shorter, thicker); points midway when half past.
+                // Hour hand (shorter, thicker); creeps forward with the minutes.
                 Capsule()
                     .fill(Color(red: 0.25, green: 0.3, blue: 0.45))
                     .frame(width: s * 0.045, height: r * 0.45)
                     .offset(y: -r * 0.225)
-                    .rotationEffect(.degrees(Double(hour % 12) * 30 + (halfPast ? 15 : 0)))
+                    .rotationEffect(.degrees(Double(hour % 12) * 30 + Double(minute) / 60.0 * 30))
 
                 // Minute hand (longer, thinner)
                 Capsule()
                     .fill(accent)
                     .frame(width: s * 0.03, height: r * 0.68)
                     .offset(y: -r * 0.34)
-                    .rotationEffect(.degrees(halfPast ? 180 : 0))
+                    .rotationEffect(.degrees(Double(minute) / 60.0 * 360))
 
                 Circle()
                     .fill(accent)
@@ -237,7 +305,7 @@ struct ClockFace: View {
                     .font(.system(size: s * 0.055))
             }
             .animation(.spring(response: 0.6, dampingFraction: 0.7), value: hour)
-            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: halfPast)
+            .animation(.spring(response: 0.6, dampingFraction: 0.7), value: minute)
         }
     }
 }

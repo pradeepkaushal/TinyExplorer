@@ -22,6 +22,7 @@
 		A10013 /* MusicGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10014; };
 		A10014 /* PatternGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10015; };
 		A10015 /* OddOneOutGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10016; };
+		A19015 /* ImaginationGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B19016; };
 		A10016 /* SpeechHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10017; };
 		A10017 /* CountingGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10018; };
 		A10018 /* EmotionsGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10019; };
@@ -52,6 +53,7 @@
 		B10014 /* MusicGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicGameView.swift; sourceTree = "<group>"; };
 		B10015 /* PatternGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternGameView.swift; sourceTree = "<group>"; };
 		B10016 /* OddOneOutGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OddOneOutGameView.swift; sourceTree = "<group>"; };
+		B19016 /* ImaginationGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImaginationGameView.swift; sourceTree = "<group>"; };
 		B10017 /* SpeechHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechHelper.swift; sourceTree = "<group>"; };
 		B10018 /* CountingGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountingGameView.swift; sourceTree = "<group>"; };
 		B10019 /* EmotionsGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmotionsGameView.swift; sourceTree = "<group>"; };
@@ -116,6 +118,7 @@
 				B10014 /* MusicGameView.swift */,
 				B10015 /* PatternGameView.swift */,
 				B10016 /* OddOneOutGameView.swift */,
+				B19016 /* ImaginationGameView.swift */,
 				B10018 /* CountingGameView.swift */,
 				B10019 /* EmotionsGameView.swift */,
 				B10025 /* WordBuilderGameView.swift */,
@@ -217,6 +220,7 @@
 				A10013 /* MusicGameView.swift in Sources */,
 				A10014 /* PatternGameView.swift in Sources */,
 				A10015 /* OddOneOutGameView.swift in Sources */,
+				A19015 /* ImaginationGameView.swift in Sources */,
 				A10016 /* SpeechHelper.swift in Sources */,
 				A10017 /* CountingGameView.swift in Sources */,
 				A10018 /* EmotionsGameView.swift in Sources */,

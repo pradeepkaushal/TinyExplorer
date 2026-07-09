@@ -149,6 +149,14 @@ struct GameTheme {
         floaters: ["💖", "😊", "✨"],
         mascot: "🐥"
     )
+    static let imagine = GameTheme(
+        key: "imagine",
+        accent: Color(red: 0.62, green: 0.36, blue: 0.9),
+        gradientTop: Color(red: 0.93, green: 0.88, blue: 1.0),
+        gradientBottom: Color(red: 0.98, green: 0.93, blue: 1.0),
+        floaters: ["🪄", "✨", "🌟"],
+        mascot: "🦄"
+    )
 }
 
 // MARK: - Playful animated background
@@ -460,6 +468,27 @@ final class StarBank: ObservableObject {
         UserDefaults.standard.set(spent, forKey: spentKey)
         return true
     }
+
+    #if DEBUG
+    /// Test-only: force the lifetime total (and clear spending) so automated
+    /// checks can screenshot the level-gated home world and unlocks at any tier.
+    /// Spreads the total across real game keys so per-card mastery medals show.
+    func debugSeedTotal(_ target: Int) {
+        let target = max(0, target)
+        let keys = ["abc", "numbers", "math", "shapes", "animals"]
+        var dict: [String: Int] = [:]
+        var remaining = target
+        for (i, key) in keys.enumerated() {
+            let share = (i == keys.count - 1) ? remaining : target / keys.count
+            dict[key] = share
+            remaining -= share
+        }
+        stars = dict
+        spent = 0
+        UserDefaults.standard.set(stars, forKey: defaultsKey)
+        UserDefaults.standard.set(spent, forKey: spentKey)
+    }
+    #endif
 }
 
 /// Mastery medals: game cards earn bronze/silver/gold as stars accumulate,
@@ -1078,14 +1107,46 @@ extension View {
 
 // MARK: - In-game progression system
 
-/// Lightweight per-session level tracker. Each game owns one via `@State`.
-/// Call `registerCorrect()` on every right answer; the level auto-advances
-/// and `showLevelUp` flips to true so the view can present a celebration.
+/// Per-game level tracker. Each game owns one via `@State`, created with its
+/// theme key so progress persists across sessions: a kid who reached Level 5
+/// in Math comes back to Level 5 Math, not Level 1.
+/// Call `registerCorrect()` on every right answer and `registerWrong()` on
+/// every miss; the level auto-advances (with `showLevelUp` flipping true for
+/// the celebration) and quietly steps down when a kid is struggling, so the
+/// difficulty tracks their actual skill in both directions.
 struct GameProgression {
     var level: Int = 1
     var correctInLevel: Int = 0
     var totalCorrect: Int = 0
     var showLevelUp: Bool = false
+
+    private let key: String
+    /// Rolling window of the most recent answers (true = correct).
+    private var recentResults: [Bool] = []
+    private static let windowSize = 6
+
+    /// Loads persisted progress for the game, if any. Pass the game's
+    /// `GameTheme` key. An empty key gives a non-persisting tracker
+    /// (used by previews/sandboxes).
+    init(key: String = "") {
+        self.key = key
+        guard !key.isEmpty else { return }
+        let defaults = UserDefaults.standard
+        let saved = defaults.integer(forKey: "TinyExplorers.prog.\(key).level")
+        if saved > 0 {
+            level = saved
+            correctInLevel = defaults.integer(forKey: "TinyExplorers.prog.\(key).correct")
+            totalCorrect = defaults.integer(forKey: "TinyExplorers.prog.\(key).total")
+        }
+    }
+
+    private func save() {
+        guard !key.isEmpty else { return }
+        let defaults = UserDefaults.standard
+        defaults.set(level, forKey: "TinyExplorers.prog.\(key).level")
+        defaults.set(correctInLevel, forKey: "TinyExplorers.prog.\(key).correct")
+        defaults.set(totalCorrect, forKey: "TinyExplorers.prog.\(key).total")
+    }
 
     /// Correct answers needed to advance from the current level.
     var neededForNextLevel: Int { 3 + level } // L1→4, L2→5, L3→6 …
@@ -1105,6 +1166,7 @@ struct GameProgression {
 
     /// Register a correct answer; levels up when the threshold is reached.
     mutating func registerCorrect() {
+        recordResult(true)
         correctInLevel += 1
         totalCorrect += 1
         if correctInLevel >= neededForNextLevel {
@@ -1112,14 +1174,247 @@ struct GameProgression {
             correctInLevel = 0
             showLevelUp = true
         }
+        save()
+    }
+
+    /// Register a miss. When most of the recent window is wrong, quietly
+    /// steps the level down one — no announcement, the next rounds are just
+    /// gentler. Never drops below Level 1.
+    mutating func registerWrong() {
+        recordResult(false)
+        let misses = recentResults.filter { !$0 }.count
+        if recentResults.count >= 4, misses >= 4, level > 1 {
+            level -= 1
+            correctInLevel = 0
+            recentResults.removeAll()
+        }
+        save()
+    }
+
+    private mutating func recordResult(_ correct: Bool) {
+        recentResults.append(correct)
+        if recentResults.count > Self.windowSize {
+            recentResults.removeFirst()
+        }
     }
 
     /// Clear the level-up flag after the celebration has been shown.
     mutating func clearLevelUp() { showLevelUp = false }
 }
 
+// MARK: - Spoken answer options
+
+/// A chunky speaker button beside a text answer option — the way a
+/// pre-reader hears what a choice says without needing a grown-up.
+/// Sits NEXT to the answer button (never nested inside it) so hearing
+/// an option can't accidentally select it.
+struct SpeakOptionButton: View {
+    let text: String
+    var accent: Color
+
+    var body: some View {
+        Button {
+            Haptics.tap()
+            SpeechHelper.speak(text)
+        } label: {
+            Image(systemName: "speaker.wave.2.circle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(accent)
+                .background(Circle().fill(.white).padding(3))
+                .shadow(color: accent.opacity(0.3), radius: 4, y: 2)
+        }
+        .buttonStyle(SquishyButtonStyle())
+        .accessibilityLabel("Hear this choice")
+    }
+}
+
+// MARK: - Adventure rounds
+
+/// A short five-find "adventure" round. The kid watches a trail of star
+/// stamps fill toward a treasure chest, and finishing pops the chest with
+/// bonus stars. Gives a game a beginning, a celebration ending, and a
+/// healthy stopping point instead of an infinite loop.
+struct Adventure {
+    private(set) var completedInRound = 0
+    private(set) var missesInRound = 0
+    let goal = 5
+
+    var isComplete: Bool { completedInRound >= goal }
+
+    /// Bonus stars in the chest: 3 for a perfect run, 2 for one slip, else 1.
+    var chestStars: Int {
+        if missesInRound == 0 { return 3 }
+        if missesInRound == 1 { return 2 }
+        return 1
+    }
+
+    mutating func recordCorrect() { completedInRound += 1 }
+    mutating func recordMiss() { missesInRound += 1 }
+    mutating func reset() {
+        completedInRound = 0
+        missesInRound = 0
+    }
+}
+
+/// The visible trail: a stamp per adventure step filling toward a gift box,
+/// so "how much is left" is legible with zero reading.
+struct AdventureTrail: View {
+    let progress: Int
+    let goal: Int
+    let theme: GameTheme
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<goal, id: \.self) { i in
+                ZStack {
+                    Circle()
+                        .fill(i < progress ? theme.accent : Color.white.opacity(0.7))
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(theme.accent.opacity(0.5), lineWidth: 2))
+                    if i < progress {
+                        Text("⭐").font(.system(size: 15))
+                            .transition(.scale)
+                    }
+                }
+                .scaleEffect(i == progress - 1 ? 1.12 : 1.0)
+                .animation(.spring(response: 0.35, dampingFraction: 0.5), value: progress)
+
+                if i < goal - 1 {
+                    Capsule()
+                        .fill(theme.accent.opacity(i < progress ? 0.6 : 0.25))
+                        .frame(width: 14, height: 4)
+                }
+            }
+
+            Text("🎁")
+                .font(.system(size: 30))
+                .scaleEffect(progress >= goal ? 1.2 : 1.0)
+                .padding(.leading, 4)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .background(Capsule().fill(.white.opacity(0.75)))
+    }
+}
+
+/// Full-screen "adventure complete" celebration: the chest springs open,
+/// bonus stars pop out one by one, and one big spoken-and-iconed button
+/// starts the next adventure. The quiet subtitle blesses stopping here —
+/// a healthy session boundary, not a nag to continue.
+struct AdventureCompleteOverlay: View {
+    let stars: Int
+    let theme: GameTheme
+    let onPlayAgain: () -> Void
+
+    @State private var chestOpen = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35).ignoresSafeArea()
+            ConfettiView()
+
+            VStack(spacing: 16) {
+                Text(chestOpen ? "🎉" : "🎁")
+                    .font(.system(size: 96))
+                    .scaleEffect(chestOpen ? 1.15 : 1.0)
+                    .rotationEffect(.degrees(chestOpen ? 0 : -6))
+
+                Text("Adventure complete!")
+                    .font(.system(size: 36, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [theme.accent, theme.accent.opacity(0.6)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+
+                if chestOpen {
+                    HStack(spacing: 10) {
+                        ForEach(0..<stars, id: \.self) { i in
+                            Text("⭐")
+                                .font(.system(size: 46))
+                                .popIn(delay: 0.15 + Double(i) * 0.18)
+                        }
+                    }
+                    Text(stars == 1 ? "+1 bonus star!" : "+\(stars) bonus stars!")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(red: 0.85, green: 0.6, blue: 0.05))
+                }
+
+                Button {
+                    Haptics.tap()
+                    SoundEngine.shared.play(.pop)
+                    onPlayAgain()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(.system(size: 26))
+                        Text("Play More!")
+                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 38)
+                    .padding(.vertical, 16)
+                    .background(
+                        Capsule()
+                            .fill(theme.accent)
+                            .shadow(color: theme.accent.opacity(0.5), radius: 8, y: 4)
+                    )
+                }
+                .buttonStyle(SquishyButtonStyle())
+                .padding(.top, 6)
+
+                Text("or take a break — great job!")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(.secondary)
+            }
+            .padding(44)
+            .background(
+                RoundedRectangle(cornerRadius: 34)
+                    .fill(.white)
+                    .shadow(color: theme.accent.opacity(0.35), radius: 20, y: 8)
+            )
+        }
+        .onAppear {
+            Haptics.success()
+            SoundEngine.shared.play(.win)
+            // "You did it!" ships as a pre-rendered child-voice clip; the
+            // star count is told visually by the popping stars, so the
+            // whole moment stays off the robotic TTS fallback.
+            SpeechHelper.cheer("You did it!")
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.55).delay(0.4)) {
+                chestOpen = true
+            }
+        }
+    }
+}
+
 /// Compact level + progress + hint header shown at the top of every game.
 /// It tells the kid exactly where they are and what to do next.
+/// The kid's chosen buddy, riding along in every game header with a gentle
+/// wave. Tapping it plays a cheer — a familiar friend that follows them across
+/// the whole app and updates instantly when they pick a new buddy.
+struct BuddyReactor: View {
+    @ObservedObject private var profile = Profile.shared
+    @State private var wave = false
+
+    var body: some View {
+        Button {
+            Haptics.tap()
+            SoundEngine.shared.play(.pop)
+            SpeechHelper.cheer(profile.buddy.hello)
+        } label: {
+            Text(profile.buddy.emoji)
+                .font(.system(size: 34))
+                .rotationEffect(.degrees(wave ? 9 : -9), anchor: .bottom)
+                .animation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true), value: wave)
+        }
+        .buttonStyle(.plain)
+        .onAppear { wave = true }
+        .accessibilityLabel(Text(profile.buddy.name))
+    }
+}
+
 struct GameProgressHeader: View {
     let level: Int
     let correctInLevel: Int
@@ -1131,6 +1426,9 @@ struct GameProgressHeader: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // The kid's buddy tags along in every game
+            BuddyReactor()
+
             // Level badge — pulsing circle
             ZStack {
                 Circle()

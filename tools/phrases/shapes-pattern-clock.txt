@@ -1,0 +1,178 @@
+Quiz
+Explore
+A red circle!
+A blue square!
+A green triangle!
+A yellow star!
+A purple diamond!
+A pink heart!
+An orange oval!
+A teal rectangle!
+An indigo pentagon!
+A mint hexagon!
+A blue crescent!
+A brown arrow!
+Find the Circle
+Find the Square
+Find the Triangle
+Find the Star
+Find the Diamond
+Find the Heart
+Find the Oval
+Find the Rectangle
+Find the Pentagon
+Find the Hexagon
+Find the Crescent
+Find the Arrow
+Find the Circle!
+Find the Square!
+Find the Triangle!
+Find the Star!
+Find the Diamond!
+Find the Heart!
+Find the Oval!
+Find the Rectangle!
+Find the Pentagon!
+Find the Hexagon!
+Find the Crescent!
+Find the Arrow!
+That's a Circle!
+That's a Square!
+That's a Triangle!
+That's a Star!
+That's a Diamond!
+That's a Heart!
+That's a Oval!
+That's a Rectangle!
+That's a Pentagon!
+That's a Hexagon!
+That's a Crescent!
+That's a Arrow!
+Try again!
+What comes next?
+Yes, it's the red circle!
+Yes, it's the blue circle!
+Yes, it's the yellow circle!
+Yes, it's the green circle!
+Yes, it's the star!
+Yes, it's the moon!
+Yes, it's the sun!
+Yes, it's the cloud!
+Yes, it's the dog!
+Yes, it's the cat!
+Yes, it's the rabbit!
+Yes, it's the bear!
+Yes, it's the frog!
+Yes, it's the butterfly!
+Yes, it's the triangle!
+Yes, it's the square!
+Yes, it's the car!
+Yes, it's the bus!
+Yes, it's the apple!
+Yes, it's the orange!
+Yes, it's the lemon!
+Yes, it's the grapes!
+Yes, it's the red heart!
+Yes, it's the yellow heart!
+Yes, it's the green heart!
+Yes, it's the blue heart!
+Yes, it's the flower!
+Yes, it's the leaf!
+What time is it?
+Look at the little hand! Try again!
+1 o'clock
+2 o'clock
+3 o'clock
+4 o'clock
+5 o'clock
+6 o'clock
+7 o'clock
+8 o'clock
+9 o'clock
+10 o'clock
+11 o'clock
+12 o'clock
+quarter past 1
+quarter past 2
+quarter past 3
+quarter past 4
+quarter past 5
+quarter past 6
+quarter past 7
+quarter past 8
+quarter past 9
+quarter past 10
+quarter past 11
+quarter past 12
+half past 1
+half past 2
+half past 3
+half past 4
+half past 5
+half past 6
+half past 7
+half past 8
+half past 9
+half past 10
+half past 11
+half past 12
+quarter to 1
+quarter to 2
+quarter to 3
+quarter to 4
+quarter to 5
+quarter to 6
+quarter to 7
+quarter to 8
+quarter to 9
+quarter to 10
+quarter to 11
+quarter to 12
+Yes! It's 1 o'clock!
+Yes! It's 2 o'clock!
+Yes! It's 3 o'clock!
+Yes! It's 4 o'clock!
+Yes! It's 5 o'clock!
+Yes! It's 6 o'clock!
+Yes! It's 7 o'clock!
+Yes! It's 8 o'clock!
+Yes! It's 9 o'clock!
+Yes! It's 10 o'clock!
+Yes! It's 11 o'clock!
+Yes! It's 12 o'clock!
+Yes! It's quarter past 1!
+Yes! It's quarter past 2!
+Yes! It's quarter past 3!
+Yes! It's quarter past 4!
+Yes! It's quarter past 5!
+Yes! It's quarter past 6!
+Yes! It's quarter past 7!
+Yes! It's quarter past 8!
+Yes! It's quarter past 9!
+Yes! It's quarter past 10!
+Yes! It's quarter past 11!
+Yes! It's quarter past 12!
+Yes! It's half past 1!
+Yes! It's half past 2!
+Yes! It's half past 3!
+Yes! It's half past 4!
+Yes! It's half past 5!
+Yes! It's half past 6!
+Yes! It's half past 7!
+Yes! It's half past 8!
+Yes! It's half past 9!
+Yes! It's half past 10!
+Yes! It's half past 11!
+Yes! It's half past 12!
+Yes! It's quarter to 1!
+Yes! It's quarter to 2!
+Yes! It's quarter to 3!
+Yes! It's quarter to 4!
+Yes! It's quarter to 5!
+Yes! It's quarter to 6!
+Yes! It's quarter to 7!
+Yes! It's quarter to 8!
+Yes! It's quarter to 9!
+Yes! It's quarter to 10!
+Yes! It's quarter to 11!
+Yes! It's quarter to 12!

@@ -7,7 +7,7 @@ struct NumberGameView: View {
     @State private var showCelebration = false
     @State private var bounceNumber = false
     @State private var idlePulse = false
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.numbers.key)
 
     private let hints = [
         "Tap each item and count out loud!",

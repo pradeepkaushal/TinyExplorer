@@ -14,13 +14,12 @@ struct MemoryGameView: View {
     @State private var moves = 0
     @State private var matchedPairs = 0
     @State private var showWin = false
-    @State private var difficulty: Difficulty = .easy
     @State private var newGamePulse = false
     @State private var isPeeking = false
     @State private var peekCountdown = 0
     /// Invalidates scheduled peek callbacks when a new game starts mid-peek.
     @State private var gameGeneration = 0
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.memory.key)
 
     private let hints = [
         "Look closely during the peek time!",
@@ -29,36 +28,31 @@ struct MemoryGameView: View {
         "You have a super memory now!",
     ]
 
-    enum Difficulty: String, CaseIterable {
-        case easy = "Easy (6)"
-        case medium = "Medium (8)"
-        case hard = "Hard (12)"
+    /// Board grows with the kid's level: 4 pairs at Level 1, one more pair
+    /// per level, up to 12. No picker to read — the game meets them where
+    /// they are.
+    private var pairCount: Int { min(12, 3 + progression.level) }
 
-        var pairCount: Int {
-            switch self {
-            case .easy: return 6
-            case .medium: return 8
-            case .hard: return 12
-            }
-        }
+    /// Pairs actually dealt on the current board. Layout, the pairs label,
+    /// and the win check all use this so a mid-game level-up can't reshape
+    /// the board under the kid's fingers.
+    private var dealtPairCount: Int { max(1, cards.count / 2) }
 
-        var columns: Int {
-            switch self {
-            case .easy: return 3
-            case .medium: return 4
-            case .hard: return 6
-            }
-        }
-
-        /// How long the cards stay revealed to memorize before covering.
-        var peekSeconds: Int {
-            switch self {
-            case .easy: return 6
-            case .medium: return 9
-            case .hard: return 12
-            }
+    private var boardColumns: Int {
+        switch dealtPairCount {
+        case ...5: return 3
+        case 6...8: return 4
+        case 9...10: return 5
+        default: return 6
         }
     }
+
+    /// Peek time scales with the board — ~1.5s per pair — so bigger boards
+    /// stay memorizable instead of impossible. A comfortable 6-second floor
+    /// keeps the smallest boards friendly for the youngest kids, and rounding
+    /// up (rather than truncating) means higher levels are never shorted a
+    /// fraction of a second and always get a generous look.
+    private var peekSeconds: Int { max(6, Int((Double(pairCount) * 1.5).rounded(.up))) }
 
     let allEmojis = ["🐶", "🐱", "🐸", "🦊", "🐻", "🐼",
                      "🦁", "🐮", "🐷", "🐵", "🐧", "🦄",
@@ -71,21 +65,11 @@ struct MemoryGameView: View {
             VStack(spacing: 10) {
                 // Controls
                 HStack {
-                    ThemedSegmentedPicker(
-                        items: Difficulty.allCases.map { (title: $0.rawValue, value: $0) },
-                        selection: $difficulty,
-                        accent: GameTheme.memory.accent
-                    )
-                    .onChange(of: difficulty) { _ in
-                        SoundEngine.shared.play(.tap)
-                        startNewGame()
-                    }
-
                     Spacer()
 
                     HStack(spacing: 16) {
                         Label("\(moves) Moves", systemImage: "hand.tap")
-                        Label("\(matchedPairs)/\(difficulty.pairCount) Pairs", systemImage: "checkmark.circle")
+                        Label("\(matchedPairs)/\(dealtPairCount) Pairs", systemImage: "checkmark.circle")
                     }
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .padding(.horizontal, 16)
@@ -139,7 +123,7 @@ struct MemoryGameView: View {
 
                 // Cards grid — fills all remaining space, centered
                 GeometryReader { geo in
-                    let cols = difficulty.columns
+                    let cols = boardColumns
                     let rows = (cards.count + cols - 1) / cols
                     let spacing: CGFloat = 12
                     let totalHSpacing = spacing * CGFloat(cols - 1)
@@ -177,7 +161,7 @@ struct MemoryGameView: View {
 
             if showWin {
                 VStack(spacing: 20) {
-                    CelebrationOverlayEnhanced(message: "You did it in \(moves) moves!")
+                    CelebrationOverlayEnhanced(message: "You matched them all! 🎉")
 
                     Button("Play Again") {
                         Haptics.tap()
@@ -212,7 +196,7 @@ struct MemoryGameView: View {
     func startNewGame() {
         gameGeneration += 1
         let generation = gameGeneration
-        let emojis = Array(allEmojis.shuffled().prefix(difficulty.pairCount))
+        let emojis = Array(allEmojis.shuffled().prefix(pairCount))
         let paired = (emojis + emojis).shuffled()
         // Start face-up: the kid gets a few seconds to memorize the board.
         cards = paired.map { MemoryCard(emoji: $0, isFaceUp: true) }
@@ -223,7 +207,7 @@ struct MemoryGameView: View {
         showWin = false
 
         isPeeking = true
-        let peekSeconds = difficulty.peekSeconds
+        let peekSeconds = self.peekSeconds
         peekCountdown = peekSeconds
         SpeechHelper.speak("Look closely and remember the cards!")
 
@@ -273,7 +257,7 @@ struct MemoryGameView: View {
                     Haptics.success()
                     SoundEngine.shared.play(.correct)
 
-                    if matchedPairs == difficulty.pairCount {
+                    if matchedPairs == dealtPairCount {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             StarBank.shared.award(1, to: GameTheme.memory.key)
                             progression.registerCorrect()

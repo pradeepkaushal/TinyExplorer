@@ -9,23 +9,30 @@ struct Buddy: Identifiable, Equatable {
     let name: String
     let emoji: String
     let hello: String
+    /// Global level at which this buddy becomes choosable. Starter buddies are
+    /// level 1; the rest unlock as the kid earns stars, so the picker keeps
+    /// growing new friends to discover.
+    var unlockLevel: Int = 1
 
     static let all: [Buddy] = [
         Buddy(id: "fox", name: "Foxy", emoji: "🦊", hello: "Hi, I'm Foxy! Let's explore!"),
         Buddy(id: "bunny", name: "Hopper", emoji: "🐰", hello: "Hi, I'm Hopper! Hop hop!"),
         Buddy(id: "panda", name: "Bamboo", emoji: "🐼", hello: "Hi, I'm Bamboo! Let's play!"),
-        Buddy(id: "unicorn", name: "Sparkle", emoji: "🦄", hello: "Hi, I'm Sparkle! Magic time!"),
-        Buddy(id: "frog", name: "Croaky", emoji: "🐸", hello: "Hi, I'm Croaky! Ribbit!"),
-        Buddy(id: "cat", name: "Whiskers", emoji: "🐱", hello: "Hi, I'm Whiskers! Meow!"),
-        Buddy(id: "bear", name: "Honey", emoji: "🐻", hello: "Hi, I'm Honey! Big bear hug!"),
-        Buddy(id: "chick", name: "Chirpy", emoji: "🐥", hello: "Hi, I'm Chirpy! Cheep cheep!"),
-        Buddy(id: "penguin", name: "Waddles", emoji: "🐧", hello: "Hi, I'm Waddles! Brrr, let's go!"),
-        Buddy(id: "dino", name: "Rexy", emoji: "🦖", hello: "Hi, I'm Rexy! Roar roar!"),
+        Buddy(id: "frog", name: "Croaky", emoji: "🐸", hello: "Hi, I'm Croaky! Ribbit!", unlockLevel: 2),
+        Buddy(id: "chick", name: "Chirpy", emoji: "🐥", hello: "Hi, I'm Chirpy! Cheep cheep!", unlockLevel: 2),
+        Buddy(id: "cat", name: "Whiskers", emoji: "🐱", hello: "Hi, I'm Whiskers! Meow!", unlockLevel: 3),
+        Buddy(id: "bear", name: "Honey", emoji: "🐻", hello: "Hi, I'm Honey! Big bear hug!", unlockLevel: 4),
+        Buddy(id: "unicorn", name: "Sparkle", emoji: "🦄", hello: "Hi, I'm Sparkle! Magic time!", unlockLevel: 5),
+        Buddy(id: "penguin", name: "Waddles", emoji: "🐧", hello: "Hi, I'm Waddles! Brrr, let's go!", unlockLevel: 6),
+        Buddy(id: "dino", name: "Rexy", emoji: "🦖", hello: "Hi, I'm Rexy! Roar roar!", unlockLevel: 8),
     ]
 
     static func find(_ id: String) -> Buddy {
         all.first { $0.id == id } ?? all[0]
     }
+
+    /// True when the kid's global level has reached this buddy's unlock gate.
+    func isUnlocked(atLevel level: Int) -> Bool { level >= unlockLevel }
 }
 
 /// Persisted choice of buddy.
@@ -68,7 +75,12 @@ struct StickerPack: Identifiable {
     let title: String
     let emoji: String
     let accent: Color
+    /// Global level that reveals this pack. Locked packs show as silhouettes
+    /// with a "Reach Level N" teaser, so the collection visibly grows.
+    var unlockLevel: Int = 1
     let stickers: [Sticker]
+
+    func isUnlocked(atLevel level: Int) -> Bool { level >= unlockLevel }
 
     static let all: [StickerPack] = [
         StickerPack(
@@ -86,6 +98,7 @@ struct StickerPack: Identifiable {
         StickerPack(
             id: "space", title: "Space Explorers", emoji: "🚀",
             accent: Color(red: 0.42, green: 0.40, blue: 0.91),
+            unlockLevel: 3,
             stickers: [
                 Sticker(id: "rocket", name: "Rocket", emoji: "🚀", cost: 8),
                 Sticker(id: "moon", name: "Moon", emoji: "🌙", cost: 10),
@@ -98,6 +111,7 @@ struct StickerPack: Identifiable {
         StickerPack(
             id: "ocean", title: "Ocean Friends", emoji: "🌊",
             accent: Color(red: 0.0, green: 0.6, blue: 0.78),
+            unlockLevel: 5,
             stickers: [
                 Sticker(id: "fish", name: "Fish", emoji: "🐠", cost: 8),
                 Sticker(id: "crab", name: "Crab", emoji: "🦀", cost: 10),
@@ -110,6 +124,7 @@ struct StickerPack: Identifiable {
         StickerPack(
             id: "treats", title: "Sweet Treats", emoji: "🍭",
             accent: Color(red: 0.93, green: 0.38, blue: 0.62),
+            unlockLevel: 8,
             stickers: [
                 Sticker(id: "strawberry", name: "Strawberry", emoji: "🍓", cost: 8),
                 Sticker(id: "icecream", name: "Ice Cream", emoji: "🍦", cost: 10),

@@ -112,7 +112,12 @@ struct EmotionsGameView: View {
     @State private var quizStreak = 0
     @State private var quizResult: Bool? = nil
     @State private var quizType: QuizType = .nameToFace
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.emotions.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
+    // Guards against one troublesome emotion draining the adventure chest: a
+    // wrong round lets the child retry, but the miss is recorded only once.
+    @State private var missRecordedThisRound = false
 
     private let quizHints = [
         "Look at the face's eyes and mouth!",
@@ -136,6 +141,10 @@ struct EmotionsGameView: View {
     }
 
     let columns = Array(repeating: GridItem(.flexible(), spacing: 14), count: 4)
+
+    // Balances the (now level-dependent) option count into tidy rows: 3 or 6
+    // options fill rows of three; 4 becomes a neat 2x2; 5 becomes 3+2.
+    private var optionsPerRow: Int { quizOptions.count == 4 ? 2 : 3 }
 
     var body: some View {
         ZStack {
@@ -170,6 +179,18 @@ struct EmotionsGameView: View {
             if progression.showLevelUp {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
+            }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        newQuizRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
             }
         }
         .kidNavigation(title: "Emotions", theme: theme)
@@ -314,6 +335,7 @@ struct EmotionsGameView: View {
             HStack(spacing: 16) {
                 StarCounterChipEnhanced(count: quizScore)
                 StreakBadgeEnhanced(streak: quizStreak)
+                AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
             }
             .padding(.top, 8)
 
@@ -327,7 +349,10 @@ struct EmotionsGameView: View {
                             .font(.system(size: 32, weight: .heavy, design: .rounded))
                             .multilineTextAlignment(.center)
 
-                        HStack(spacing: 24) {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 24), count: optionsPerRow),
+                            spacing: 20
+                        ) {
                             ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
                                 Button(action: { checkQuiz(option) }) {
                                     Text(option.face)
@@ -340,6 +365,8 @@ struct EmotionsGameView: View {
                                 .popIn(delay: Double(index) * 0.04)
                             }
                         }
+                        .frame(maxWidth: 640)
+                        .padding(.horizontal, 24)
 
                     case .faceToName:
                         Text(quiz.face)
@@ -347,28 +374,38 @@ struct EmotionsGameView: View {
                         Text("How is this face feeling?")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                        HStack(spacing: 18) {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 18), count: optionsPerRow),
+                            spacing: 18
+                        ) {
                             ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
-                                Button(action: { checkQuiz(option) }) {
-                                    Text(option.name)
-                                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                        .frame(width: 160, height: 70)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .fill(option.color)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 20)
-                                                        .strokeBorder(.white.opacity(0.5), lineWidth: 2.5)
-                                                )
-                                                .shadow(color: option.color.opacity(0.5), radius: 6, y: 3)
-                                        )
+                                // Speaker beside the word so a pre-reader can hear
+                                // every choice instead of facing a wall of text.
+                                HStack(spacing: 10) {
+                                    SpeakOptionButton(text: option.name, accent: option.color)
+                                    Button(action: { checkQuiz(option) }) {
+                                        Text(option.name)
+                                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                                            .foregroundColor(.white)
+                                            .frame(width: 150, height: 70)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .fill(option.color)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 20)
+                                                            .strokeBorder(.white.opacity(0.5), lineWidth: 2.5)
+                                                    )
+                                                    .shadow(color: option.color.opacity(0.5), radius: 6, y: 3)
+                                            )
+                                    }
+                                    .buttonStyle(SquishyButtonStyle())
+                                    .disabled(quizResult != nil)
                                 }
-                                .buttonStyle(SquishyButtonStyle())
-                                .disabled(quizResult != nil)
                                 .popIn(delay: Double(index) * 0.04)
                             }
                         }
+                        .frame(maxWidth: 760)
+                        .padding(.horizontal, 24)
 
                     case .situationToEmotion:
                         VStack(spacing: 14) {
@@ -383,24 +420,33 @@ struct EmotionsGameView: View {
                                 .foregroundColor(.secondary)
                         }
 
-                        HStack(spacing: 18) {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.flexible(), spacing: 18), count: optionsPerRow),
+                            spacing: 18
+                        ) {
                             ForEach(Array(quizOptions.enumerated()), id: \.element.id) { index, option in
-                                Button(action: { checkQuiz(option) }) {
-                                    VStack(spacing: 8) {
-                                        Text(option.face)
-                                            .font(.system(size: 58))
-                                        Text(option.name)
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundColor(.primary)
+                                // Speaker beside each feeling name for pre-readers.
+                                HStack(spacing: 10) {
+                                    SpeakOptionButton(text: option.name, accent: option.color)
+                                    Button(action: { checkQuiz(option) }) {
+                                        VStack(spacing: 8) {
+                                            Text(option.face)
+                                                .font(.system(size: 58))
+                                            Text(option.name)
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .foregroundColor(.primary)
+                                        }
+                                        .frame(width: 132, height: 122)
+                                        .background(quizCardBackground())
                                     }
-                                    .frame(width: 132, height: 122)
-                                    .background(quizCardBackground())
+                                    .buttonStyle(SquishyButtonStyle())
+                                    .disabled(quizResult != nil)
                                 }
-                                .buttonStyle(SquishyButtonStyle())
-                                .disabled(quizResult != nil)
                                 .popIn(delay: Double(index) * 0.04)
                             }
                         }
+                        .frame(maxWidth: 760)
+                        .padding(.horizontal, 24)
                     }
 
                     if quizResult == false {
@@ -529,13 +575,48 @@ struct EmotionsGameView: View {
 
     func newQuizRound() {
         quizResult = nil
-        quizEmotion = emotions.randomElement()
-        quizType = [QuizType.nameToFace, .faceToName, .situationToEmotion].randomElement()!
+        missRecordedThisRound = false
+        // Never the same emotion twice in a row.
+        guard let quiz = emotions.filter({ $0.name != quizEmotion?.name }).randomElement() else { return }
+        quizEmotion = quiz
+        // Staged unlock: beginners only get the fully-spoken pick-the-face round;
+        // Level 3-4 add the situation round (still a face-based, non-reading path);
+        // Level 5+ add the reading variant as the top challenge.
+        let availableTypes: [QuizType]
+        switch progression.level {
+        case ..<3:
+            availableTypes = [.nameToFace]
+        case 3...4:
+            availableTypes = [.nameToFace, .situationToEmotion]
+        default:
+            availableTypes = [.nameToFace, .situationToEmotion, .faceToName]
+        }
+        quizType = availableTypes.randomElement()!
 
-        guard let quiz = quizEmotion else { return }
+        // More choices as the level rises: L1=3, L2=4, L3=5, L4+=6 (cap 6).
+        let optionCount = min(emotions.count, min(6, 3 + max(0, progression.level - 1)))
+
         var opts = [quiz]
-        while opts.count < 4 {
-            if let random = emotions.randomElement(), !opts.contains(where: { $0.name == random.name }) {
+        // In situation rounds the prompt itself can fit more than one feeling
+        // (e.g. Sad's "miss someone" also fits Lonely, Shy's "somewhere new"
+        // fits Lonely, Frustrated overlaps Angry). Never offer those partners as
+        // distractors for each other, or a reasonable answer is marked wrong.
+        let banned: Set<String> = quizType == .situationToEmotion ? ambiguousPartners(of: quiz) : []
+        // From Level 4, bias distractors toward the target's valence cluster so
+        // the wrong faces are genuinely harder to rule out.
+        if progression.level >= 4 {
+            let cluster = valenceCluster(for: quiz)
+            let confusable = emotions
+                .filter { cluster.contains($0.name) && $0.name != quiz.name && !banned.contains($0.name) }
+                .shuffled()
+            for candidate in confusable where opts.count < optionCount {
+                opts.append(candidate)
+            }
+        }
+        while opts.count < optionCount {
+            if let random = emotions.randomElement(),
+               !banned.contains(random.name),
+               !opts.contains(where: { $0.name == random.name }) {
                 opts.append(random)
             }
         }
@@ -551,23 +632,54 @@ struct EmotionsGameView: View {
         }
     }
 
+    /// Splits the feelings into two rough valence clusters so higher levels can
+    /// draw distractors that are genuinely close to (and confusable with) the
+    /// target emotion instead of being obvious opposites.
+    private func valenceCluster(for emotion: Emotion) -> Set<String> {
+        let unpleasant: Set<String> = ["Sad", "Lonely", "Frustrated", "Scared", "Angry", "Shy"]
+        return unpleasant.contains(emotion.name)
+            ? unpleasant
+            : ["Happy", "Excited", "Proud", "Loved", "Silly", "Surprised"]
+    }
+
+    /// Feelings whose situation prompts overlap enough that a child could
+    /// reasonably pick either one. In situationToEmotion rounds these must never
+    /// be distractors for each other, or a sensible answer gets marked wrong.
+    private func ambiguousPartners(of emotion: Emotion) -> Set<String> {
+        switch emotion.name {
+        case "Sad": return ["Lonely"]
+        case "Lonely": return ["Sad", "Shy"]
+        case "Shy": return ["Lonely"]
+        case "Frustrated": return ["Angry"]
+        case "Angry": return ["Frustrated"]
+        default: return []
+        }
+    }
+
     func checkQuiz(_ option: Emotion) {
         quizTotal += 1
         if option.name == quizEmotion?.name {
             quizScore += 1
             StarBank.shared.award(1, to: theme.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation(.spring()) {
                 quizStreak += 1
                 quizResult = true
             }
-            if progression.showLevelUp {
-                SoundEngine.shared.play(.streak)
-            } else if quizStreak > 0, quizStreak % 5 == 0 {
+            // Award the every-5th-in-a-row bonus star independently of the
+            // level-up branch, so a streak milestone that lands on the same
+            // answer as a level-up is never silently dropped.
+            let isStreakMilestone = quizStreak > 0 && quizStreak % 5 == 0
+            if isStreakMilestone {
                 StarBank.shared.award(1, to: theme.key)
                 quizScore += 1
+            }
+            if progression.showLevelUp {
+                SoundEngine.shared.play(.streak)
+            } else if isStreakMilestone {
                 SoundEngine.shared.play(.streak)
                 SpeechHelper.speak("\(quizStreak) in a row!")
             } else {
@@ -576,11 +688,26 @@ struct EmotionsGameView: View {
             let delay = progression.showLevelUp ? 2.5 : 2.0
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                withAnimation { newQuizRound() }
+                if adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        // Clear the "Correct!" celebration first so it does not
+                        // linger stacked behind the treasure-chest overlay.
+                        quizResult = nil
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { newQuizRound() }
+                }
             }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            if !missRecordedThisRound {
+                progression.registerWrong()
+                adventure.recordMiss()
+                missRecordedThisRound = true
+            }
             withAnimation(.spring()) {
                 quizStreak = 0
                 quizResult = false
@@ -598,7 +725,8 @@ struct EmotionsGameView: View {
     }
 
     func nextMirrorEmotion() {
-        mirrorEmotion = emotions.randomElement()
+        // Never show the same face twice in a row, matching the quiz guard.
+        mirrorEmotion = emotions.filter { $0.name != mirrorEmotion?.name }.randomElement()
         if let emotion = mirrorEmotion {
             SpeechHelper.speak("Show me your \(emotion.name) face!")
         }

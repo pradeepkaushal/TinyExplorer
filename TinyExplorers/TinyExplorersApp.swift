@@ -2,6 +2,12 @@ import SwiftUI
 
 @main
 struct TinyExplorersApp: App {
+    init() {
+        #if DEBUG
+        Self.applyDebugLevelSeed()
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             rootView
@@ -51,8 +57,20 @@ struct TinyExplorersApp: App {
         case "spelling": return AnyView(WordBuilderGameView())
         case "listen": return AnyView(ListenFindGameView())
         case "clock": return AnyView(ClockGameView())
+        case "imagine": return AnyView(ImaginationGameView())
         default: return nil
         }
+    }
+
+    /// `-level <n>` seeds the star total to exactly the threshold for global
+    /// level n, so the evolving home sky and level-gated unlocks can be
+    /// screenshotted at any tier.
+    private static func applyDebugLevelSeed() {
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-level"), args.count > i + 1,
+              let n = Int(args[i + 1]) else { return }
+        let idx = min(max(1, n), LevelSystem.xpPerLevel.count)
+        StarBank.shared.debugSeedTotal(LevelSystem.xpPerLevel[idx - 1])
     }
     #endif
 }

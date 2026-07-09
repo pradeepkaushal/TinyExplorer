@@ -13,8 +13,35 @@ struct Animal: Identifiable {
 
     /// Spoken "encyclopedia entry" for the Tell Me More button.
     var story: String {
-        "\(name)s live in \(home.lowercased()). They love to eat \(food.lowercased()). A baby \(name.lowercased()) is called a \(baby.lowercased()). \(fact)"
+        let plural: String
+        switch name {
+        case "Sheep": plural = "Sheep"
+        case "Wolf": plural = "Wolves"
+        default: plural = "\(name)s"
+        }
+        let babyWord = baby.lowercased()
+        let babyArticle = "aeiou".contains(babyWord.first ?? " ") ? "an" : "a"
+        return "\(plural) live in \(home.lowercased()). They love to eat \(food.lowercased()). A baby \(name.lowercased()) is called \(babyArticle) \(babyWord). \(fact)"
     }
+
+    /// Stable sound-family grouping. Used from Level 4 up to prefer subtler
+    /// distractors (farm sounds among farm sounds) instead of the free-text
+    /// `home` string, which is too unique to group by reliably.
+    fileprivate var category: AnimalCategory {
+        switch name {
+        case "Dog", "Cat", "Cow", "Duck", "Pig", "Sheep", "Horse", "Rooster", "Goat", "Donkey":
+            return .farm
+        case "Lion", "Elephant", "Monkey", "Tiger", "Bear", "Wolf", "Snake", "Owl":
+            return .wild
+        default: // Frog, Bee, Parrot, Dolphin, Whale, Seal
+            return .water
+        }
+    }
+}
+
+/// Sound families used to build subtler distractors as the level ramps.
+private enum AnimalCategory {
+    case farm, wild, water
 }
 
 struct AnimalGameView: View {
@@ -90,7 +117,15 @@ struct AnimalGameView: View {
     @State private var celebrationMessage = Encouragement.random()
     /// Drives the gentle idle pulse of the paw placeholder.
     @State private var pawPulse = false
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.animals.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
+    /// Target names already asked in the current Adventure round, so a
+    /// five-find adventure always surfaces five distinct animals.
+    @State private var usedInAdventure: Set<String> = []
+    /// Once-per-round guard so multiple wrong taps in one round can't
+    /// re-penalize (mirrors ListenFindGameView's missRecordedThisRound).
+    @State private var missRecordedThisRound = false
 
     private let quizHints = [
         "Think about what sound the animal makes!",
@@ -119,7 +154,17 @@ struct AnimalGameView: View {
                 .onChange(of: gameMode) { _ in
                     SoundEngine.shared.play(.pop)
                     SpeechHelper.stop()
-                    if gameMode == .guess { newQuizRound() }
+                    if gameMode == .guess {
+                        // If the completion chest was still up from a finished
+                        // adventure, clear it and start fresh so the stale
+                        // overlay can't layer over the new round.
+                        if showAdventureComplete {
+                            adventure.reset()
+                            usedInAdventure.removeAll()
+                            showAdventureComplete = false
+                        }
+                        newQuizRound()
+                    }
                 }
 
                 if gameMode == .explore {
@@ -194,6 +239,12 @@ struct AnimalGameView: View {
                     // Gentle idle pulse on the paw placeholder.
                     Text("🐾")
                         .font(.system(size: 90))
+                        .scaleEffect(pawPulse ? 1.08 : 1.0)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+                                pawPulse = true
+                            }
+                        }
                     MascotBubble(theme: theme, text: "Tap an animal to learn about it!")
                 }
                 .frame(height: 330)
@@ -256,6 +307,19 @@ struct AnimalGameView: View {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    usedInAdventure.removeAll()
+                    withAnimation {
+                        showAdventureComplete = false
+                        newQuizRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
+            }
         }
     }
 
@@ -273,6 +337,7 @@ struct AnimalGameView: View {
             HStack(spacing: 12) {
                 StarCounterChipEnhanced(count: quizScore)
                 StreakBadgeEnhanced(streak: quizStreak)
+                AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
             }
 
             Spacer(minLength: 0)
@@ -318,6 +383,14 @@ struct AnimalGameView: View {
                             )
                         }
                         .buttonStyle(SquishyButtonStyle())
+                        // Speaker sits in the corner as a sibling of the tile so
+                        // a pre-reader can hear the name; it speaks the NAME only
+                        // (never the sound) so it can't give away the answer, and
+                        // never triggers the tile's own selection.
+                        .overlay(alignment: .topTrailing) {
+                            SpeakOptionButton(text: option.name, accent: theme.accent)
+                                .padding(10)
+                        }
                     }
                 }
                 .padding(.horizontal, 60)
@@ -352,18 +425,32 @@ struct AnimalGameView: View {
 
     func newQuizRound() {
         showResult = nil
-        quizAnimal = animals.randomElement()
-        var options = [quizAnimal!]
-        while options.count < 4 {
-            if let random = animals.randomElement(), !options.contains(where: { $0.name == random.name }) {
-                options.append(random)
-            }
+        missRecordedThisRound = false
+        // 3 choices for beginners, up to 6 as they level, never the same
+        // animal twice in a row.
+        let optionCount = min(6, 2 + (progression.level + 1) / 2)
+        // Exclude every animal already asked this adventure so five finds mean
+        // five distinct animals; fall back to "anything but the last" only if
+        // the whole roster were somehow exhausted.
+        var candidates = animals.filter { !usedInAdventure.contains($0.name) }
+        if candidates.isEmpty {
+            candidates = animals.filter { $0.name != quizAnimal?.name }
         }
-        quizOptions = options.shuffled()
+        guard let quiz = candidates.randomElement() else { return }
+        quizAnimal = quiz
+        usedInAdventure.insert(quiz.name)
 
-        if let quiz = quizAnimal {
-            SpeechHelper.speak("Which animal says \(quiz.sound)")
+        // From Level 4, distractors prefer animals from the same sound family —
+        // farm sounds among farm sounds is a real listen, not a giveaway. Falls
+        // back to random fill when the family has too few members.
+        var pool = animals.filter { $0.name != quiz.name }.shuffled()
+        if progression.level >= 4 {
+            let confusable = pool.filter { $0.category == quiz.category }
+            pool = confusable + pool.filter { $0.category != quiz.category }
         }
+        quizOptions = ([quiz] + pool.prefix(optionCount - 1)).shuffled()
+
+        SpeechHelper.speak("Which animal says \(quiz.sound)")
     }
 
     func checkGuess(_ option: Animal) {
@@ -377,6 +464,7 @@ struct AnimalGameView: View {
             }
             StarBank.shared.award(1, to: GameTheme.animals.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             if progression.showLevelUp {
@@ -393,7 +481,14 @@ struct AnimalGameView: View {
             let delay = progression.showLevelUp ? 2.5 : 2.0
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                withAnimation { newQuizRound() }
+                if adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: GameTheme.animals.key)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { newQuizRound() }
+                }
             }
         } else {
             withAnimation {
@@ -402,6 +497,11 @@ struct AnimalGameView: View {
             }
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            if !missRecordedThisRound {
+                progression.registerWrong()
+                adventure.recordMiss()
+                missRecordedThisRound = true
+            }
             SpeechHelper.speak("Oops, that's the \(option.name)!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation { showResult = nil }

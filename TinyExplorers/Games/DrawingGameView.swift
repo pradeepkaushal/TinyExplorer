@@ -15,8 +15,13 @@ struct DrawingGameView: View {
     @State private var selectedWidth: CGFloat = 8
     @State private var showStickers = false
     @State private var placedStickers: [(emoji: String, position: CGPoint)] = []
+    @State private var selectedSticker: String? = nil
+    @State private var history: [DrawAction] = []
     @State private var paletteBob = false
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.drawing.key)
+
+    // Tracks the order of actions so Undo removes the most recent stroke OR sticker.
+    private enum DrawAction { case stroke, sticker }
 
     private let hints = [
         "Pick a color and start drawing!",
@@ -99,6 +104,7 @@ struct DrawingGameView: View {
                                     SoundEngine.shared.play(.tap)
                                     selectedColor = color
                                     selectedColorName = name
+                                    selectedSticker = nil
                                 }) {
                                     ZStack {
                                         Circle()
@@ -140,6 +146,7 @@ struct DrawingGameView: View {
                                 Haptics.tap()
                                 SoundEngine.shared.play(.tap)
                                 selectedWidth = size
+                                selectedSticker = nil
                             }) {
                                 Circle()
                                     .fill(selectedWidth == size ? GameTheme.drawing.accent : Color.gray.opacity(0.5))
@@ -164,7 +171,7 @@ struct DrawingGameView: View {
                         showStickers.toggle()
                     }) {
                         VStack(spacing: 4) {
-                            Text("😀")
+                            Text(selectedSticker ?? "😀")
                                 .font(.system(size: 28))
                             Text("Stickers")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -172,13 +179,35 @@ struct DrawingGameView: View {
                         .padding(8)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(showStickers ? GameTheme.drawing.accent.opacity(0.2) : Color.clear)
+                                .fill((showStickers || selectedSticker != nil) ? GameTheme.drawing.accent.opacity(0.2) : Color.clear)
                         )
                     }
                     .buttonStyle(SquishyButtonStyle())
                 }
                 .padding(.bottom, 8)
             }
+
+            // Undo button — pinned at the bottom (disabled when nothing to undo)
+            Button(action: {
+                guard !history.isEmpty else { return }
+                Haptics.tap()
+                SoundEngine.shared.play(.tap)
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    undoLast()
+                }
+            }) {
+                VStack(spacing: 4) {
+                    Image(systemName: "arrow.uturn.backward")
+                        .font(.system(size: 22))
+                    Text("Undo")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(history.isEmpty ? .gray : GameTheme.drawing.accent)
+            }
+            .buttonStyle(SquishyButtonStyle())
+            .disabled(history.isEmpty)
+            .opacity(history.isEmpty ? 0.4 : 1)
+            .padding(.bottom, 2)
 
             // Clear button — pinned at the bottom
             Button(action: {
@@ -187,6 +216,7 @@ struct DrawingGameView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     lines.removeAll()
                     placedStickers.removeAll()
+                    history.removeAll()
                 }
             }) {
                 VStack(spacing: 4) {
@@ -216,7 +246,7 @@ struct DrawingGameView: View {
     // MARK: - Canvas (inset rounded card so the playful background shows)
 
     private var canvasCard: some View {
-        GeometryReader { geo in
+        GeometryReader { _ in
             ZStack {
                 Color.white
 
@@ -259,22 +289,17 @@ struct DrawingGameView: View {
                             ForEach(stickers, id: \.self) { emoji in
                                 Button(action: {
                                     Haptics.tap()
-                                    SoundEngine.shared.play(.pop)
-                                    let position = CGPoint(
-                                        x: geo.size.width / 2 + CGFloat.random(in: -90...90),
-                                        y: geo.size.height / 2 + CGFloat.random(in: -90...90)
-                                    )
-                                    withAnimation(.spring(response: 0.3)) {
-                                        placedStickers.append((emoji: emoji, position: position))
-                                    }
+                                    SoundEngine.shared.play(.tap)
+                                    // Arm this sticker — the next tap on the canvas places it.
+                                    selectedSticker = emoji
                                     showStickers = false
                                 }) {
                                     Text(emoji)
                                         .font(.system(size: 38))
-                                        .padding(6)
+                                        .frame(width: 60, height: 60)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(.white)
+                                                .fill(selectedSticker == emoji ? GameTheme.drawing.accent.opacity(0.3) : .white)
                                                 .shadow(radius: 3)
                                         )
                                 }
@@ -300,6 +325,8 @@ struct DrawingGameView: View {
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         if showStickers { return }
+                        // When a sticker is armed, the canvas places it on release — don't draw.
+                        if selectedSticker != nil { return }
                         let point = value.location
                         if currentLine == nil {
                             currentLine = DrawingLine(points: [point], color: selectedColor, lineWidth: selectedWidth)
@@ -307,9 +334,22 @@ struct DrawingGameView: View {
                             currentLine?.points.append(point)
                         }
                     }
-                    .onEnded { _ in
+                    .onEnded { value in
+                        if showStickers { return }
+                        // Tap-to-place: drop the armed sticker exactly where the child tapped.
+                        if let emoji = selectedSticker {
+                            Haptics.tap()
+                            SoundEngine.shared.play(.pop)
+                            withAnimation(.spring(response: 0.3)) {
+                                placedStickers.append((emoji: emoji, position: value.location))
+                            }
+                            history.append(.sticker)
+                            currentLine = nil
+                            return
+                        }
                         if let line = currentLine {
                             lines.append(line)
+                            history.append(.stroke)
                         }
                         currentLine = nil
                     }
@@ -320,6 +360,19 @@ struct DrawingGameView: View {
                     .stroke(GameTheme.drawing.accent.opacity(0.5), lineWidth: 2.5)
             )
             .shadow(color: GameTheme.drawing.accent.opacity(0.25), radius: 10, y: 4)
+        }
+    }
+
+    // MARK: - Undo
+
+    // Removes the most recent action (a stroke or a placed sticker), preserving order.
+    private func undoLast() {
+        guard let last = history.popLast() else { return }
+        switch last {
+        case .stroke:
+            if !lines.isEmpty { lines.removeLast() }
+        case .sticker:
+            if !placedStickers.isEmpty { placedStickers.removeLast() }
         }
     }
 }

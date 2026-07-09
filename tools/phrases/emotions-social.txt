@@ -1,0 +1,180 @@
+Happy
+Sad
+Angry
+Scared
+Surprised
+Excited
+Shy
+Proud
+Lonely
+Silly
+Loved
+Frustrated
+Happy! Happy is when you feel good inside, like sunshine in your tummy!
+Sad! Sad is when something makes your heart feel heavy, and that's okay!
+Angry! Angry is when something feels really unfair or frustrating!
+Scared! Scared is when something makes you feel unsafe or worried!
+Surprised! Surprised is when something you didn't expect happens!
+Excited! Excited is when you can't wait for something amazing to happen!
+Shy! Shy is when you feel nervous around new people or places!
+Proud! Proud is when you did something great and feel really good about it!
+Lonely! Lonely is when you wish you had someone to play with or talk to!
+Silly! Silly is when you feel playful and want to laugh and be goofy!
+Loved! Loved is the warm feeling when you know someone cares about you!
+Frustrated! Frustrated is when something is hard and won't work the way you want!
+Which face shows Happy?
+Which face shows Sad?
+Which face shows Angry?
+Which face shows Scared?
+Which face shows Surprised?
+Which face shows Excited?
+Which face shows Shy?
+Which face shows Proud?
+Which face shows Lonely?
+Which face shows Silly?
+Which face shows Loved?
+Which face shows Frustrated?
+How is this face feeling?
+When you play with friends, eat your favorite food, or get a hug. How would you feel?
+When you miss someone, lose a toy, or something doesn't go your way. How would you feel?
+When someone takes your toy, breaks your things, or won't listen. How would you feel?
+In the dark, hearing loud noises, seeing something new and big. How would you feel?
+A surprise party, an unexpected gift, or something sudden. How would you feel?
+Before your birthday, going to the park, or seeing your best friend. How would you feel?
+Meeting new kids, speaking in front of class, or going somewhere new. How would you feel?
+When you learn something new, help someone, or try really hard. How would you feel?
+When friends are busy, you're new somewhere, or no one is around. How would you feel?
+Playing with friends, making funny faces, or telling jokes. How would you feel?
+Getting a hug, hearing 'I love you', or when someone helps you. How would you feel?
+Can't solve a puzzle, tie your shoes, or something keeps going wrong. How would you feel?
+That's Happy!
+That's Sad!
+That's Angry!
+That's Scared!
+That's Surprised!
+That's Excited!
+That's Shy!
+That's Proud!
+That's Lonely!
+That's Silly!
+That's Loved!
+That's Frustrated!
+Oops! That's the Happy face.
+Oops! That's the Sad face.
+Oops! That's the Angry face.
+Oops! That's the Scared face.
+Oops! That's the Surprised face.
+Oops! That's the Excited face.
+Oops! That's the Shy face.
+Oops! That's the Proud face.
+Oops! That's the Lonely face.
+Oops! That's the Silly face.
+Oops! That's the Loved face.
+Oops! That's the Frustrated face.
+Show me your Happy face!
+Show me your Sad face!
+Show me your Angry face!
+Show me your Scared face!
+Show me your Surprised face!
+Show me your Excited face!
+Show me your Shy face!
+Show me your Proud face!
+Show me your Lonely face!
+Show me your Silly face!
+Show me your Loved face!
+Show me your Frustrated face!
+Someone gives you a gift. What do you say?
+You accidentally bump into someone. What do you do?
+Your friend is crying. What should you do?
+You feel really angry. What's the best thing to do?
+You have cookies and your friend has none. What do you do?
+A new kid joins your class. What should you do?
+A stranger asks you to go with them. What do you do?
+Your team is working on a project but one person isn't helping. What do you do?
+Thank you!
+I don't like it
+Give me more!
+Put it away without a word
+Ask how much it cost
+Say 'Sorry!'
+Walk away
+Laugh at them
+Say it was their fault
+Pretend it didn't happen
+Ask if they're OK
+Ignore them
+Tell them to stop
+Walk to another room
+Say it's no big deal
+Take deep breaths
+Yell at someone
+Break something
+Keep it all inside
+Stomp away upset
+Share some!
+Eat them all
+Hide them
+Eat them quickly
+Say maybe later
+Say hello and be friendly
+Whisper about them
+Wait for them to talk first
+Watch them from far away
+Say NO and tell a grown-up
+Go with them
+Take their candy
+Ask where they want to go
+Follow just a little way
+Ask them nicely to help
+Do all the work yourself
+Tell on them
+Ignore them and keep going
+Get upset with them
+Saying 'thank you' shows you appreciate the gift!
+Even if you don't love the gift, it's kind to say thank you.
+Asking for more can hurt someone's feelings.
+A quick 'thank you' lets the giver know you care.
+The kind thing is to say thank you, not ask the price.
+Apologizing shows you care about others!
+Walking away without saying sorry can make someone feel bad.
+Laughing can hurt their feelings. It's better to say sorry.
+Owning our little mistakes with a 'sorry' is the kind thing to do.
+Even a small bump deserves a gentle 'sorry'.
+Asking shows you care and want to help your friend!
+Friends need us when they're sad. Try to help!
+Everyone needs to express their feelings. Be patient and kind.
+Staying close shows your friend they are not alone.
+Feelings matter. Ask how you can help instead.
+Breathing deeply helps calm you down so you can think clearly!
+Yelling can hurt others. Try calming down first.
+Breaking things doesn't help. Deep breaths are much better!
+It helps to let big feelings out gently, like with deep breaths.
+A few deep breaths help more than stomping away.
+Sharing makes everyone happy and is a great way to be kind!
+Eating them all when your friend has none isn't very kind.
+Hiding food from a friend can make them sad. Sharing is caring!
+Slowing down to share makes the treat even sweeter.
+Sharing right now shows your friend you care.
+Being friendly helps new kids feel welcome and happy!
+Being ignored feels lonely. Saying hi can make their whole day!
+Whispering about someone can hurt their feelings.
+A friendly 'hello' first helps them feel welcome.
+Going over to say hi is warmer than watching.
+Always say no to strangers and tell a trusted adult right away!
+Never go with strangers! Always tell a trusted grown-up.
+Never accept things from strangers. Tell a grown-up instead!
+Don't chat with strangers. Say no and find a grown-up.
+Never follow a stranger. Say no and tell an adult you trust.
+Asking nicely encourages everyone to participate!
+It's better to include everyone. Ask them what they'd like to do!
+Try asking them first. Maybe they don't know how to help!
+Inviting them in works better than leaving them out.
+A kind question helps more than getting upset.
+Great job!
+Amazing!
+You did it!
+Super star!
+Wow, brilliant!
+Fantastic!
+Way to go!
+You're awesome!

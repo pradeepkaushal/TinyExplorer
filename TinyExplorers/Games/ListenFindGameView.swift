@@ -55,9 +55,12 @@ struct ListenFindGameView: View {
     @State private var streak = 0
     @State private var celebrating = false
     @State private var wrongItem: SpyItem? = nil
-    @State private var round = 1
     @State private var celebrationMessage = Encouragement.random()
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.listen.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
+    @State private var lastTargetName: String? = nil
+    @State private var missRecordedThisRound = false
 
     private let hints = [
         "Listen carefully to the name!",
@@ -76,14 +79,19 @@ struct ListenFindGameView: View {
             VStack(spacing: 20) {
                 HStack(spacing: 12) {
                     ThemedSegmentedPicker(
-                        items: SpyCategory.all.enumerated().map { (title: $0.element.title, value: $0.offset) },
+                        items: SpyCategory.all.enumerated().map {
+                            (title: Self.categoryEmoji(for: $0.element.title) + " " + $0.element.title, value: $0.offset)
+                        },
                         selection: $categoryIndex,
                         accent: theme.accent
                     )
                     .onChange(of: categoryIndex) { _ in
                         SoundEngine.shared.play(.pop)
+                        SpeechHelper.speak(SpyCategory.all[categoryIndex].title)
+                        lastTargetName = nil
                         newRound()
                     }
+                    .disabled(celebrating || showAdventureComplete)
                 }
 
                 GameProgressHeader(
@@ -99,18 +107,21 @@ struct ListenFindGameView: View {
                     StarCounterChipEnhanced(count: score)
                     StreakBadgeEnhanced(streak: streak)
                     Spacer()
-                    Text("Round \(round)")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(theme.accent)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(.white.opacity(0.85)))
+                    AdventureTrail(
+                        progress: adventure.completedInRound,
+                        goal: adventure.goal,
+                        theme: theme
+                    )
                 }
                 .padding(.horizontal, 8)
 
                 if let target {
                     HStack(spacing: 10) {
-                        MascotBubble(theme: theme, text: "Find the \(target.name)!", mascotSize: 52)
+                        MascotBubble(
+                            theme: theme,
+                            text: progression.level >= 4 ? "Find it — listen!" : "Find the \(target.name)!",
+                            mascotSize: 52
+                        )
                         Button {
                             Haptics.tap()
                             SoundEngine.shared.play(.tap)
@@ -180,20 +191,74 @@ struct ListenFindGameView: View {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        newRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .kidNavigation(title: "I Spy", theme: theme)
         .onAppear { newRound() }
         .onDisappear { SpeechHelper.stop() }
     }
 
+    /// Representative emoji per category so a pre-reader can both see and
+    /// (via the spoken title) hear which segment is which.
+    private static func categoryEmoji(for title: String) -> String {
+        switch title {
+        case "Animals": return "🐾"
+        case "Food": return "🍎"
+        case "Vehicles": return "🚗"
+        default: return "🧸"
+        }
+    }
+
     private func newRound() {
         celebrating = false
         wrongItem = nil
+        missRecordedThisRound = false
+
         let pool = SpyCategory.all[categoryIndex].items.shuffled()
-        // Progressive: more items at higher levels (6 → 8 → 9)
-        let itemCount = min(9, 6 + progression.level / 3)
-        choices = Array(pool.prefix(itemCount))
-        target = choices.randomElement()
+        // Progressive: deeper ramp fills the full 10-item pool (L1=6 … L5=10).
+        let itemCount = min(pool.count, 5 + progression.level)
+        var built = Array(pool.prefix(itemCount))
+
+        // Anti-repeat: never make the previous round's item the target again.
+        let candidates = built.count > 1 ? built.filter { $0.name != lastTargetName } : built
+        let chosen = candidates.randomElement() ?? built.randomElement()
+
+        // Higher levels: sprinkle in subtler cross-category distractors so the
+        // find is genuinely harder and less predictable as the child grows.
+        if progression.level >= 4, let chosen {
+            let crossCount = max(1, (itemCount - 1) / 3)
+            var kept = built.filter { $0.name == chosen.name }
+            let currentDistractors = built.filter { $0.name != chosen.name }
+            let keepCurrentCount = max(0, currentDistractors.count - crossCount)
+            kept.append(contentsOf: currentDistractors.prefix(keepCurrentCount))
+            var seenNames = Set(kept.map { $0.name })
+            let others = SpyCategory.all.enumerated()
+                .filter { $0.offset != categoryIndex }
+                .flatMap { $0.element.items }
+                .shuffled()
+            for candidate in others where kept.count < itemCount {
+                if seenNames.insert(candidate.name).inserted {
+                    kept.append(candidate)
+                }
+            }
+            built = kept
+        }
+
+        built.shuffle()
+        choices = built
+        target = chosen
+        lastTargetName = target?.name
         if let target {
             SpeechHelper.speak("Find the \(target.name)!")
         }
@@ -220,15 +285,34 @@ struct ListenFindGameView: View {
             }
             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                 celebrating = true
+                adventure.recordCorrect()
             }
             let delay = progression.showLevelUp ? 2.5 : 1.9
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                round += 1
-                withAnimation { newRound() }
+                if adventure.isComplete {
+                    // Pop the chest: bonus stars scale with how clean the run was.
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    celebrating = false
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { newRound() }
+                }
             }
         } else {
             streak = 0
+            // Every wrong tap feeds difficulty relief, so a child who is over
+            // their head genuinely gets gentler rounds (the level quietly steps
+            // down once the recent window fills with misses). The adventure
+            // chest still treats a whole round as at most one miss, so fumbling
+            // within a single round doesn't wipe out the clean-run bonus.
+            progression.registerWrong()
+            if !missRecordedThisRound {
+                adventure.recordMiss()
+                missRecordedThisRound = true
+            }
             Haptics.error()
             SoundEngine.shared.play(.wrong)
             SpeechHelper.speak("Oops, that's the \(item.name). Find the \(target.name)!")

@@ -1,0 +1,918 @@
+Look closely and remember the cards!
+Now find the pairs!
+Now tap the matching spot above!
+Farm Animals. Tap a piece below, then tap its matching spot!
+Sea Creatures. Tap a piece below, then tap its matching spot!
+Fruits. Tap a piece below, then tap its matching spot!
+Vehicles. Tap a piece below, then tap its matching spot!
+Weather. Tap a piece below, then tap its matching spot!
+Food. Tap a piece below, then tap its matching spot!
+Farm Animals. Find the matching spots!
+Sea Creatures. Find the matching spots!
+Fruits. Find the matching spots!
+Vehicles. Find the matching spots!
+Weather. Find the matching spots!
+Food. Find the matching spots!
+Find the odd one out!
+Oops! Try again!
+You did it!
+The dog is not a fruit!
+The cat is not a fruit!
+The frog is not a fruit!
+The bunny is not a fruit!
+The bear is not a fruit!
+The cow is not a fruit!
+The pig is not a fruit!
+The lion is not a fruit!
+The car is not a fruit!
+The bus is not a fruit!
+The train is not a fruit!
+The plane is not a fruit!
+The helicopter is not a fruit!
+The tractor is not a fruit!
+The scooter is not a fruit!
+The blossom is not a fruit!
+The sunflower is not a fruit!
+The hibiscus is not a fruit!
+The tulip is not a fruit!
+The rose is not a fruit!
+The sun is not a fruit!
+The moon is not a fruit!
+The star is not a fruit!
+The cloud is not a fruit!
+The rainbow is not a fruit!
+The fish is not a fruit!
+The dolphin is not a fruit!
+The octopus is not a fruit!
+The crab is not a fruit!
+The whale is not a fruit!
+The seashell is not a fruit!
+The ice cream is not a fruit!
+The cupcake is not a fruit!
+The cake is not a fruit!
+The lollipop is not a fruit!
+The donut is not a fruit!
+The cookie is not a fruit!
+The broccoli is not a fruit!
+The carrot is not a fruit!
+The corn is not a fruit!
+The tomato is not a fruit!
+The cucumber is not a fruit!
+The sneaker is not a fruit!
+The cap is not a fruit!
+The glove is not a fruit!
+The sock is not a fruit!
+The dress is not a fruit!
+The coat is not a fruit!
+The piano is not a fruit!
+The guitar is not a fruit!
+The trumpet is not a fruit!
+The drum is not a fruit!
+The violin is not a fruit!
+The bee is not a fruit!
+The ladybug is not a fruit!
+The butterfly is not a fruit!
+The caterpillar is not a fruit!
+The ant is not a fruit!
+The soccer ball is not a fruit!
+The basketball is not a fruit!
+The tennis ball is not a fruit!
+The baseball is not a fruit!
+The pizza is not a fruit!
+The burger is not a fruit!
+The taco is not a fruit!
+The sandwich is not a fruit!
+The spaghetti is not a fruit!
+The apple is not an animal!
+The orange is not an animal!
+The lemon is not an animal!
+The strawberry is not an animal!
+The grapes is not an animal!
+The banana is not an animal!
+The watermelon is not an animal!
+The peach is not an animal!
+The car is not an animal!
+The bus is not an animal!
+The train is not an animal!
+The plane is not an animal!
+The helicopter is not an animal!
+The tractor is not an animal!
+The scooter is not an animal!
+The blossom is not an animal!
+The sunflower is not an animal!
+The hibiscus is not an animal!
+The tulip is not an animal!
+The rose is not an animal!
+The sun is not an animal!
+The moon is not an animal!
+The star is not an animal!
+The cloud is not an animal!
+The rainbow is not an animal!
+The fish is not an animal!
+The dolphin is not an animal!
+The octopus is not an animal!
+The crab is not an animal!
+The whale is not an animal!
+The seashell is not an animal!
+The ice cream is not an animal!
+The cupcake is not an animal!
+The cake is not an animal!
+The lollipop is not an animal!
+The donut is not an animal!
+The cookie is not an animal!
+The broccoli is not an animal!
+The carrot is not an animal!
+The corn is not an animal!
+The tomato is not an animal!
+The cucumber is not an animal!
+The sneaker is not an animal!
+The cap is not an animal!
+The glove is not an animal!
+The sock is not an animal!
+The dress is not an animal!
+The coat is not an animal!
+The piano is not an animal!
+The guitar is not an animal!
+The trumpet is not an animal!
+The drum is not an animal!
+The violin is not an animal!
+The bee is not an animal!
+The ladybug is not an animal!
+The butterfly is not an animal!
+The caterpillar is not an animal!
+The ant is not an animal!
+The soccer ball is not an animal!
+The basketball is not an animal!
+The tennis ball is not an animal!
+The baseball is not an animal!
+The pizza is not an animal!
+The burger is not an animal!
+The taco is not an animal!
+The sandwich is not an animal!
+The spaghetti is not an animal!
+The apple is not a vehicle!
+The orange is not a vehicle!
+The lemon is not a vehicle!
+The strawberry is not a vehicle!
+The grapes is not a vehicle!
+The banana is not a vehicle!
+The watermelon is not a vehicle!
+The peach is not a vehicle!
+The dog is not a vehicle!
+The cat is not a vehicle!
+The frog is not a vehicle!
+The bunny is not a vehicle!
+The bear is not a vehicle!
+The cow is not a vehicle!
+The pig is not a vehicle!
+The lion is not a vehicle!
+The blossom is not a vehicle!
+The sunflower is not a vehicle!
+The hibiscus is not a vehicle!
+The tulip is not a vehicle!
+The rose is not a vehicle!
+The sun is not a vehicle!
+The moon is not a vehicle!
+The star is not a vehicle!
+The cloud is not a vehicle!
+The rainbow is not a vehicle!
+The fish is not a vehicle!
+The dolphin is not a vehicle!
+The octopus is not a vehicle!
+The crab is not a vehicle!
+The whale is not a vehicle!
+The seashell is not a vehicle!
+The ice cream is not a vehicle!
+The cupcake is not a vehicle!
+The cake is not a vehicle!
+The lollipop is not a vehicle!
+The donut is not a vehicle!
+The cookie is not a vehicle!
+The broccoli is not a vehicle!
+The carrot is not a vehicle!
+The corn is not a vehicle!
+The tomato is not a vehicle!
+The cucumber is not a vehicle!
+The sneaker is not a vehicle!
+The cap is not a vehicle!
+The glove is not a vehicle!
+The sock is not a vehicle!
+The dress is not a vehicle!
+The coat is not a vehicle!
+The piano is not a vehicle!
+The guitar is not a vehicle!
+The trumpet is not a vehicle!
+The drum is not a vehicle!
+The violin is not a vehicle!
+The bee is not a vehicle!
+The ladybug is not a vehicle!
+The butterfly is not a vehicle!
+The caterpillar is not a vehicle!
+The ant is not a vehicle!
+The soccer ball is not a vehicle!
+The basketball is not a vehicle!
+The tennis ball is not a vehicle!
+The baseball is not a vehicle!
+The pizza is not a vehicle!
+The burger is not a vehicle!
+The taco is not a vehicle!
+The sandwich is not a vehicle!
+The spaghetti is not a vehicle!
+The apple is not a flower!
+The orange is not a flower!
+The lemon is not a flower!
+The strawberry is not a flower!
+The grapes is not a flower!
+The banana is not a flower!
+The watermelon is not a flower!
+The peach is not a flower!
+The dog is not a flower!
+The cat is not a flower!
+The frog is not a flower!
+The bunny is not a flower!
+The bear is not a flower!
+The cow is not a flower!
+The pig is not a flower!
+The lion is not a flower!
+The car is not a flower!
+The bus is not a flower!
+The train is not a flower!
+The plane is not a flower!
+The helicopter is not a flower!
+The tractor is not a flower!
+The scooter is not a flower!
+The sun is not a flower!
+The moon is not a flower!
+The star is not a flower!
+The cloud is not a flower!
+The rainbow is not a flower!
+The fish is not a flower!
+The dolphin is not a flower!
+The octopus is not a flower!
+The crab is not a flower!
+The whale is not a flower!
+The seashell is not a flower!
+The ice cream is not a flower!
+The cupcake is not a flower!
+The cake is not a flower!
+The lollipop is not a flower!
+The donut is not a flower!
+The cookie is not a flower!
+The broccoli is not a flower!
+The carrot is not a flower!
+The corn is not a flower!
+The tomato is not a flower!
+The cucumber is not a flower!
+The sneaker is not a flower!
+The cap is not a flower!
+The glove is not a flower!
+The sock is not a flower!
+The dress is not a flower!
+The coat is not a flower!
+The piano is not a flower!
+The guitar is not a flower!
+The trumpet is not a flower!
+The drum is not a flower!
+The violin is not a flower!
+The bee is not a flower!
+The ladybug is not a flower!
+The butterfly is not a flower!
+The caterpillar is not a flower!
+The ant is not a flower!
+The soccer ball is not a flower!
+The basketball is not a flower!
+The tennis ball is not a flower!
+The baseball is not a flower!
+The pizza is not a flower!
+The burger is not a flower!
+The taco is not a flower!
+The sandwich is not a flower!
+The spaghetti is not a flower!
+The apple is not a sky thing!
+The orange is not a sky thing!
+The lemon is not a sky thing!
+The strawberry is not a sky thing!
+The grapes is not a sky thing!
+The banana is not a sky thing!
+The watermelon is not a sky thing!
+The peach is not a sky thing!
+The dog is not a sky thing!
+The cat is not a sky thing!
+The frog is not a sky thing!
+The bunny is not a sky thing!
+The bear is not a sky thing!
+The cow is not a sky thing!
+The pig is not a sky thing!
+The lion is not a sky thing!
+The car is not a sky thing!
+The bus is not a sky thing!
+The train is not a sky thing!
+The plane is not a sky thing!
+The helicopter is not a sky thing!
+The tractor is not a sky thing!
+The scooter is not a sky thing!
+The blossom is not a sky thing!
+The sunflower is not a sky thing!
+The hibiscus is not a sky thing!
+The tulip is not a sky thing!
+The rose is not a sky thing!
+The fish is not a sky thing!
+The dolphin is not a sky thing!
+The octopus is not a sky thing!
+The crab is not a sky thing!
+The whale is not a sky thing!
+The seashell is not a sky thing!
+The ice cream is not a sky thing!
+The cupcake is not a sky thing!
+The cake is not a sky thing!
+The lollipop is not a sky thing!
+The donut is not a sky thing!
+The cookie is not a sky thing!
+The broccoli is not a sky thing!
+The carrot is not a sky thing!
+The corn is not a sky thing!
+The tomato is not a sky thing!
+The cucumber is not a sky thing!
+The sneaker is not a sky thing!
+The cap is not a sky thing!
+The glove is not a sky thing!
+The sock is not a sky thing!
+The dress is not a sky thing!
+The coat is not a sky thing!
+The piano is not a sky thing!
+The guitar is not a sky thing!
+The trumpet is not a sky thing!
+The drum is not a sky thing!
+The violin is not a sky thing!
+The bee is not a sky thing!
+The ladybug is not a sky thing!
+The butterfly is not a sky thing!
+The caterpillar is not a sky thing!
+The ant is not a sky thing!
+The soccer ball is not a sky thing!
+The basketball is not a sky thing!
+The tennis ball is not a sky thing!
+The baseball is not a sky thing!
+The pizza is not a sky thing!
+The burger is not a sky thing!
+The taco is not a sky thing!
+The sandwich is not a sky thing!
+The spaghetti is not a sky thing!
+The apple is not a sea friend!
+The orange is not a sea friend!
+The lemon is not a sea friend!
+The strawberry is not a sea friend!
+The grapes is not a sea friend!
+The banana is not a sea friend!
+The watermelon is not a sea friend!
+The peach is not a sea friend!
+The dog is not a sea friend!
+The cat is not a sea friend!
+The frog is not a sea friend!
+The bunny is not a sea friend!
+The bear is not a sea friend!
+The cow is not a sea friend!
+The pig is not a sea friend!
+The lion is not a sea friend!
+The car is not a sea friend!
+The bus is not a sea friend!
+The train is not a sea friend!
+The plane is not a sea friend!
+The helicopter is not a sea friend!
+The tractor is not a sea friend!
+The scooter is not a sea friend!
+The blossom is not a sea friend!
+The sunflower is not a sea friend!
+The hibiscus is not a sea friend!
+The tulip is not a sea friend!
+The rose is not a sea friend!
+The sun is not a sea friend!
+The moon is not a sea friend!
+The star is not a sea friend!
+The cloud is not a sea friend!
+The rainbow is not a sea friend!
+The ice cream is not a sea friend!
+The cupcake is not a sea friend!
+The cake is not a sea friend!
+The lollipop is not a sea friend!
+The donut is not a sea friend!
+The cookie is not a sea friend!
+The broccoli is not a sea friend!
+The carrot is not a sea friend!
+The corn is not a sea friend!
+The tomato is not a sea friend!
+The cucumber is not a sea friend!
+The sneaker is not a sea friend!
+The cap is not a sea friend!
+The glove is not a sea friend!
+The sock is not a sea friend!
+The dress is not a sea friend!
+The coat is not a sea friend!
+The piano is not a sea friend!
+The guitar is not a sea friend!
+The trumpet is not a sea friend!
+The drum is not a sea friend!
+The violin is not a sea friend!
+The bee is not a sea friend!
+The ladybug is not a sea friend!
+The butterfly is not a sea friend!
+The caterpillar is not a sea friend!
+The ant is not a sea friend!
+The soccer ball is not a sea friend!
+The basketball is not a sea friend!
+The tennis ball is not a sea friend!
+The baseball is not a sea friend!
+The pizza is not a sea friend!
+The burger is not a sea friend!
+The taco is not a sea friend!
+The sandwich is not a sea friend!
+The spaghetti is not a sea friend!
+The apple is not a sweet treat!
+The orange is not a sweet treat!
+The lemon is not a sweet treat!
+The strawberry is not a sweet treat!
+The grapes is not a sweet treat!
+The banana is not a sweet treat!
+The watermelon is not a sweet treat!
+The peach is not a sweet treat!
+The dog is not a sweet treat!
+The cat is not a sweet treat!
+The frog is not a sweet treat!
+The bunny is not a sweet treat!
+The bear is not a sweet treat!
+The cow is not a sweet treat!
+The pig is not a sweet treat!
+The lion is not a sweet treat!
+The car is not a sweet treat!
+The bus is not a sweet treat!
+The train is not a sweet treat!
+The plane is not a sweet treat!
+The helicopter is not a sweet treat!
+The tractor is not a sweet treat!
+The scooter is not a sweet treat!
+The blossom is not a sweet treat!
+The sunflower is not a sweet treat!
+The hibiscus is not a sweet treat!
+The tulip is not a sweet treat!
+The rose is not a sweet treat!
+The sun is not a sweet treat!
+The moon is not a sweet treat!
+The star is not a sweet treat!
+The cloud is not a sweet treat!
+The rainbow is not a sweet treat!
+The fish is not a sweet treat!
+The dolphin is not a sweet treat!
+The octopus is not a sweet treat!
+The crab is not a sweet treat!
+The whale is not a sweet treat!
+The seashell is not a sweet treat!
+The broccoli is not a sweet treat!
+The carrot is not a sweet treat!
+The corn is not a sweet treat!
+The tomato is not a sweet treat!
+The cucumber is not a sweet treat!
+The sneaker is not a sweet treat!
+The cap is not a sweet treat!
+The glove is not a sweet treat!
+The sock is not a sweet treat!
+The dress is not a sweet treat!
+The coat is not a sweet treat!
+The piano is not a sweet treat!
+The guitar is not a sweet treat!
+The trumpet is not a sweet treat!
+The drum is not a sweet treat!
+The violin is not a sweet treat!
+The bee is not a sweet treat!
+The ladybug is not a sweet treat!
+The butterfly is not a sweet treat!
+The caterpillar is not a sweet treat!
+The ant is not a sweet treat!
+The soccer ball is not a sweet treat!
+The basketball is not a sweet treat!
+The tennis ball is not a sweet treat!
+The baseball is not a sweet treat!
+The pizza is not a sweet treat!
+The burger is not a sweet treat!
+The taco is not a sweet treat!
+The sandwich is not a sweet treat!
+The spaghetti is not a sweet treat!
+The apple is not a vegetable!
+The orange is not a vegetable!
+The lemon is not a vegetable!
+The strawberry is not a vegetable!
+The grapes is not a vegetable!
+The banana is not a vegetable!
+The watermelon is not a vegetable!
+The peach is not a vegetable!
+The dog is not a vegetable!
+The cat is not a vegetable!
+The frog is not a vegetable!
+The bunny is not a vegetable!
+The bear is not a vegetable!
+The cow is not a vegetable!
+The pig is not a vegetable!
+The lion is not a vegetable!
+The car is not a vegetable!
+The bus is not a vegetable!
+The train is not a vegetable!
+The plane is not a vegetable!
+The helicopter is not a vegetable!
+The tractor is not a vegetable!
+The scooter is not a vegetable!
+The blossom is not a vegetable!
+The sunflower is not a vegetable!
+The hibiscus is not a vegetable!
+The tulip is not a vegetable!
+The rose is not a vegetable!
+The sun is not a vegetable!
+The moon is not a vegetable!
+The star is not a vegetable!
+The cloud is not a vegetable!
+The rainbow is not a vegetable!
+The fish is not a vegetable!
+The dolphin is not a vegetable!
+The octopus is not a vegetable!
+The crab is not a vegetable!
+The whale is not a vegetable!
+The seashell is not a vegetable!
+The ice cream is not a vegetable!
+The cupcake is not a vegetable!
+The cake is not a vegetable!
+The lollipop is not a vegetable!
+The donut is not a vegetable!
+The cookie is not a vegetable!
+The sneaker is not a vegetable!
+The cap is not a vegetable!
+The glove is not a vegetable!
+The sock is not a vegetable!
+The dress is not a vegetable!
+The coat is not a vegetable!
+The piano is not a vegetable!
+The guitar is not a vegetable!
+The trumpet is not a vegetable!
+The drum is not a vegetable!
+The violin is not a vegetable!
+The bee is not a vegetable!
+The ladybug is not a vegetable!
+The butterfly is not a vegetable!
+The caterpillar is not a vegetable!
+The ant is not a vegetable!
+The soccer ball is not a vegetable!
+The basketball is not a vegetable!
+The tennis ball is not a vegetable!
+The baseball is not a vegetable!
+The pizza is not a vegetable!
+The burger is not a vegetable!
+The taco is not a vegetable!
+The sandwich is not a vegetable!
+The spaghetti is not a vegetable!
+The apple is not a piece of clothing!
+The orange is not a piece of clothing!
+The lemon is not a piece of clothing!
+The strawberry is not a piece of clothing!
+The grapes is not a piece of clothing!
+The banana is not a piece of clothing!
+The watermelon is not a piece of clothing!
+The peach is not a piece of clothing!
+The dog is not a piece of clothing!
+The cat is not a piece of clothing!
+The frog is not a piece of clothing!
+The bunny is not a piece of clothing!
+The bear is not a piece of clothing!
+The cow is not a piece of clothing!
+The pig is not a piece of clothing!
+The lion is not a piece of clothing!
+The car is not a piece of clothing!
+The bus is not a piece of clothing!
+The train is not a piece of clothing!
+The plane is not a piece of clothing!
+The helicopter is not a piece of clothing!
+The tractor is not a piece of clothing!
+The scooter is not a piece of clothing!
+The blossom is not a piece of clothing!
+The sunflower is not a piece of clothing!
+The hibiscus is not a piece of clothing!
+The tulip is not a piece of clothing!
+The rose is not a piece of clothing!
+The sun is not a piece of clothing!
+The moon is not a piece of clothing!
+The star is not a piece of clothing!
+The cloud is not a piece of clothing!
+The rainbow is not a piece of clothing!
+The fish is not a piece of clothing!
+The dolphin is not a piece of clothing!
+The octopus is not a piece of clothing!
+The crab is not a piece of clothing!
+The whale is not a piece of clothing!
+The seashell is not a piece of clothing!
+The ice cream is not a piece of clothing!
+The cupcake is not a piece of clothing!
+The cake is not a piece of clothing!
+The lollipop is not a piece of clothing!
+The donut is not a piece of clothing!
+The cookie is not a piece of clothing!
+The broccoli is not a piece of clothing!
+The carrot is not a piece of clothing!
+The corn is not a piece of clothing!
+The tomato is not a piece of clothing!
+The cucumber is not a piece of clothing!
+The piano is not a piece of clothing!
+The guitar is not a piece of clothing!
+The trumpet is not a piece of clothing!
+The drum is not a piece of clothing!
+The violin is not a piece of clothing!
+The bee is not a piece of clothing!
+The ladybug is not a piece of clothing!
+The butterfly is not a piece of clothing!
+The caterpillar is not a piece of clothing!
+The ant is not a piece of clothing!
+The soccer ball is not a piece of clothing!
+The basketball is not a piece of clothing!
+The tennis ball is not a piece of clothing!
+The baseball is not a piece of clothing!
+The pizza is not a piece of clothing!
+The burger is not a piece of clothing!
+The taco is not a piece of clothing!
+The sandwich is not a piece of clothing!
+The spaghetti is not a piece of clothing!
+The apple is not an instrument!
+The orange is not an instrument!
+The lemon is not an instrument!
+The strawberry is not an instrument!
+The grapes is not an instrument!
+The banana is not an instrument!
+The watermelon is not an instrument!
+The peach is not an instrument!
+The dog is not an instrument!
+The cat is not an instrument!
+The frog is not an instrument!
+The bunny is not an instrument!
+The bear is not an instrument!
+The cow is not an instrument!
+The pig is not an instrument!
+The lion is not an instrument!
+The car is not an instrument!
+The bus is not an instrument!
+The train is not an instrument!
+The plane is not an instrument!
+The helicopter is not an instrument!
+The tractor is not an instrument!
+The scooter is not an instrument!
+The blossom is not an instrument!
+The sunflower is not an instrument!
+The hibiscus is not an instrument!
+The tulip is not an instrument!
+The rose is not an instrument!
+The sun is not an instrument!
+The moon is not an instrument!
+The star is not an instrument!
+The cloud is not an instrument!
+The rainbow is not an instrument!
+The fish is not an instrument!
+The dolphin is not an instrument!
+The octopus is not an instrument!
+The crab is not an instrument!
+The whale is not an instrument!
+The seashell is not an instrument!
+The ice cream is not an instrument!
+The cupcake is not an instrument!
+The cake is not an instrument!
+The lollipop is not an instrument!
+The donut is not an instrument!
+The cookie is not an instrument!
+The broccoli is not an instrument!
+The carrot is not an instrument!
+The corn is not an instrument!
+The tomato is not an instrument!
+The cucumber is not an instrument!
+The sneaker is not an instrument!
+The cap is not an instrument!
+The glove is not an instrument!
+The sock is not an instrument!
+The dress is not an instrument!
+The coat is not an instrument!
+The bee is not an instrument!
+The ladybug is not an instrument!
+The butterfly is not an instrument!
+The caterpillar is not an instrument!
+The ant is not an instrument!
+The soccer ball is not an instrument!
+The basketball is not an instrument!
+The tennis ball is not an instrument!
+The baseball is not an instrument!
+The pizza is not an instrument!
+The burger is not an instrument!
+The taco is not an instrument!
+The sandwich is not an instrument!
+The spaghetti is not an instrument!
+The apple is not a bug!
+The orange is not a bug!
+The lemon is not a bug!
+The strawberry is not a bug!
+The grapes is not a bug!
+The banana is not a bug!
+The watermelon is not a bug!
+The peach is not a bug!
+The dog is not a bug!
+The cat is not a bug!
+The frog is not a bug!
+The bunny is not a bug!
+The bear is not a bug!
+The cow is not a bug!
+The pig is not a bug!
+The lion is not a bug!
+The car is not a bug!
+The bus is not a bug!
+The train is not a bug!
+The plane is not a bug!
+The helicopter is not a bug!
+The tractor is not a bug!
+The scooter is not a bug!
+The blossom is not a bug!
+The sunflower is not a bug!
+The hibiscus is not a bug!
+The tulip is not a bug!
+The rose is not a bug!
+The sun is not a bug!
+The moon is not a bug!
+The star is not a bug!
+The cloud is not a bug!
+The rainbow is not a bug!
+The fish is not a bug!
+The dolphin is not a bug!
+The octopus is not a bug!
+The crab is not a bug!
+The whale is not a bug!
+The seashell is not a bug!
+The ice cream is not a bug!
+The cupcake is not a bug!
+The cake is not a bug!
+The lollipop is not a bug!
+The donut is not a bug!
+The cookie is not a bug!
+The broccoli is not a bug!
+The carrot is not a bug!
+The corn is not a bug!
+The tomato is not a bug!
+The cucumber is not a bug!
+The sneaker is not a bug!
+The cap is not a bug!
+The glove is not a bug!
+The sock is not a bug!
+The dress is not a bug!
+The coat is not a bug!
+The piano is not a bug!
+The guitar is not a bug!
+The trumpet is not a bug!
+The drum is not a bug!
+The violin is not a bug!
+The soccer ball is not a bug!
+The basketball is not a bug!
+The tennis ball is not a bug!
+The baseball is not a bug!
+The pizza is not a bug!
+The burger is not a bug!
+The taco is not a bug!
+The sandwich is not a bug!
+The spaghetti is not a bug!
+The apple is not a ball!
+The orange is not a ball!
+The lemon is not a ball!
+The strawberry is not a ball!
+The grapes is not a ball!
+The banana is not a ball!
+The watermelon is not a ball!
+The peach is not a ball!
+The dog is not a ball!
+The cat is not a ball!
+The frog is not a ball!
+The bunny is not a ball!
+The bear is not a ball!
+The cow is not a ball!
+The pig is not a ball!
+The lion is not a ball!
+The car is not a ball!
+The bus is not a ball!
+The train is not a ball!
+The plane is not a ball!
+The helicopter is not a ball!
+The tractor is not a ball!
+The scooter is not a ball!
+The blossom is not a ball!
+The sunflower is not a ball!
+The hibiscus is not a ball!
+The tulip is not a ball!
+The rose is not a ball!
+The sun is not a ball!
+The moon is not a ball!
+The star is not a ball!
+The cloud is not a ball!
+The rainbow is not a ball!
+The fish is not a ball!
+The dolphin is not a ball!
+The octopus is not a ball!
+The crab is not a ball!
+The whale is not a ball!
+The seashell is not a ball!
+The ice cream is not a ball!
+The cupcake is not a ball!
+The cake is not a ball!
+The lollipop is not a ball!
+The donut is not a ball!
+The cookie is not a ball!
+The broccoli is not a ball!
+The carrot is not a ball!
+The corn is not a ball!
+The tomato is not a ball!
+The cucumber is not a ball!
+The sneaker is not a ball!
+The cap is not a ball!
+The glove is not a ball!
+The sock is not a ball!
+The dress is not a ball!
+The coat is not a ball!
+The piano is not a ball!
+The guitar is not a ball!
+The trumpet is not a ball!
+The drum is not a ball!
+The violin is not a ball!
+The bee is not a ball!
+The ladybug is not a ball!
+The butterfly is not a ball!
+The caterpillar is not a ball!
+The ant is not a ball!
+The pizza is not a ball!
+The burger is not a ball!
+The taco is not a ball!
+The sandwich is not a ball!
+The spaghetti is not a ball!
+The apple is not a food!
+The orange is not a food!
+The lemon is not a food!
+The strawberry is not a food!
+The grapes is not a food!
+The banana is not a food!
+The watermelon is not a food!
+The peach is not a food!
+The dog is not a food!
+The cat is not a food!
+The frog is not a food!
+The bunny is not a food!
+The bear is not a food!
+The cow is not a food!
+The pig is not a food!
+The lion is not a food!
+The car is not a food!
+The bus is not a food!
+The train is not a food!
+The plane is not a food!
+The helicopter is not a food!
+The tractor is not a food!
+The scooter is not a food!
+The blossom is not a food!
+The sunflower is not a food!
+The hibiscus is not a food!
+The tulip is not a food!
+The rose is not a food!
+The sun is not a food!
+The moon is not a food!
+The star is not a food!
+The cloud is not a food!
+The rainbow is not a food!
+The fish is not a food!
+The dolphin is not a food!
+The octopus is not a food!
+The crab is not a food!
+The whale is not a food!
+The seashell is not a food!
+The ice cream is not a food!
+The cupcake is not a food!
+The cake is not a food!
+The lollipop is not a food!
+The donut is not a food!
+The cookie is not a food!
+The broccoli is not a food!
+The carrot is not a food!
+The corn is not a food!
+The tomato is not a food!
+The cucumber is not a food!
+The sneaker is not a food!
+The cap is not a food!
+The glove is not a food!
+The sock is not a food!
+The dress is not a food!
+The coat is not a food!
+The piano is not a food!
+The guitar is not a food!
+The trumpet is not a food!
+The drum is not a food!
+The violin is not a food!
+The bee is not a food!
+The ladybug is not a food!
+The butterfly is not a food!
+The caterpillar is not a food!
+The ant is not a food!
+The soccer ball is not a food!
+The basketball is not a food!
+The tennis ball is not a food!
+The baseball is not a food!

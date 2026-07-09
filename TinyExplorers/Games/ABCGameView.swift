@@ -55,7 +55,12 @@ struct ABCGameView: View {
     @State private var quizStreak = 0
     @State private var quizShowResult: Bool? = nil
     @State private var quizEmojiBob = false
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.abc.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
+    // One miss per question: extra wrong taps on the same round give feedback
+    // but never re-count against the chest or the adaptive step-down.
+    @State private var missRecordedThisRound = false
 
     private let quizHints = [
         "Look at the picture and find its first letter!",
@@ -103,6 +108,18 @@ struct ABCGameView: View {
             if progression.showLevelUp {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
+            }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        newQuizRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
             }
         }
         .kidNavigation(title: "ABC Letters", theme: theme)
@@ -292,6 +309,7 @@ struct ABCGameView: View {
             HStack(spacing: 16) {
                 StarCounterChipEnhanced(count: quizScore)
                 StreakBadgeEnhanced(streak: quizStreak)
+                AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
             }
             .padding(.top, 8)
 
@@ -300,17 +318,28 @@ struct ABCGameView: View {
             VStack(spacing: 26) {
                 if let quiz = quizLetter, let info = letterData[quiz] {
                     VStack(spacing: 16) {
-                        Text("Which letter does \(info.word) start with?")
+                        Text(progression.level < 3
+                             ? "Which letter does \(info.word) start with?"
+                             : "Which letter does this word start with?")
                             .font(.system(size: 30, weight: .heavy, design: .rounded))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
 
-                        Text(info.emoji)
-                            .font(.system(size: 120))
-                            .shadow(color: theme.accent.opacity(0.3), radius: 8, y: 4)
+                        // Decouple the giveaway cue by level: the emoji is the
+                        // last visual crutch and disappears at high levels so the
+                        // child must lean on the spoken sound instead of reading.
+                        if progression.level < 5 {
+                            Text(info.emoji)
+                                .font(.system(size: 120))
+                                .shadow(color: theme.accent.opacity(0.3), radius: 8, y: 4)
+                        }
 
-                        Text(info.word)
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                        // Only the earliest levels spell the word out; hiding it
+                        // stops a reading child from simply copying the answer.
+                        if progression.level < 3 {
+                            Text(info.word)
+                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                        }
                     }
                     .padding(24)
                     .background(
@@ -323,36 +352,67 @@ struct ABCGameView: View {
                             .stroke(theme.accent.opacity(0.3), lineWidth: 2.5)
                     )
 
+                    // Replay control: at high levels the emoji and word are
+                    // hidden, so a pre-reader who missed the spoken prompt can
+                    // always hear the question (and target sound) again.
+                    Button {
+                        Haptics.tap()
+                        SoundEngine.shared.play(.tap)
+                        speakQuizPrompt()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "speaker.wave.2.fill")
+                            Text("Hear again")
+                        }
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .frame(minHeight: 60)
+                        .background(
+                            Capsule()
+                                .fill(theme.accent)
+                                .shadow(color: theme.accent.opacity(0.4), radius: 6, y: 3)
+                        )
+                    }
+                    .buttonStyle(SquishyButtonStyle())
+
                     HStack(spacing: 26) {
                         ForEach(Array(quizOptions.enumerated()), id: \.element) { index, option in
-                            Button(action: { checkQuizAnswer(option) }) {
-                                Text(String(option))
-                                    .font(.system(size: 62, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .frame(width: 132, height: 132)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [theme.accent, theme.accent.opacity(0.7)],
-                                                    startPoint: .top, endPoint: .bottom
+                            VStack(spacing: 12) {
+                                Button(action: { checkQuizAnswer(option) }) {
+                                    Text(String(option))
+                                        .font(.system(size: 62, weight: .heavy, design: .rounded))
+                                        .foregroundColor(.white)
+                                        .frame(width: 132, height: 132)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 24)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [theme.accent, theme.accent.opacity(0.7)],
+                                                        startPoint: .top, endPoint: .bottom
+                                                    )
                                                 )
-                                            )
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 24)
-                                                    .strokeBorder(.white.opacity(0.6), lineWidth: 3)
-                                            )
-                                            .shadow(color: theme.accent.opacity(0.5), radius: 10, y: 5)
-                                    )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 24)
+                                                        .strokeBorder(.white.opacity(0.6), lineWidth: 3)
+                                                )
+                                                .shadow(color: theme.accent.opacity(0.5), radius: 10, y: 5)
+                                        )
+                                }
+                                .buttonStyle(SquishyButtonStyle())
+                                .disabled(quizShowResult != nil)
+
+                                // Speaker sits below the answer (outside its Button)
+                                // so a pre-reader can hear each candidate letter's
+                                // name before choosing — hearing never selects.
+                                SpeakOptionButton(text: String(option), accent: theme.accent)
                             }
-                            .buttonStyle(SquishyButtonStyle())
-                            .disabled(quizShowResult != nil)
                             .popIn(delay: Double(index) * 0.04)
                         }
                     }
 
                     if let result = quizShowResult {
-                        Text(result ? "Correct! \(String(quiz)) is for \(info.word)!" : "Try again! \(info.word) starts with \(String(quiz))")
+                        Text(result ? "Correct! \(String(quiz)) is for \(info.word)!" : "Oops! Listen and try again!")
                             .font(.system(size: 25, weight: .bold, design: .rounded))
                             .foregroundColor(result ? .green : .orange)
                             .padding(.horizontal, 20)
@@ -386,6 +446,23 @@ struct ABCGameView: View {
         Int(letter.asciiValue! - Character("A").asciiValue!) + 1
     }
 
+    /// Letters that are easy to mix up with `letter` — mirror/rotation shapes
+    /// (b/d/p/q), similar strokes (M/N/W/V, E/F, I/J/L/T) and shared sounds
+    /// (C/G/K/S). Used to make quiz distractors subtler at higher levels.
+    private func confusableLetters(for letter: Character) -> [Character] {
+        let groups: [[Character]] = [
+            ["B", "D", "P", "Q"],
+            ["M", "N", "W", "V"],
+            ["E", "F"],
+            ["C", "G", "K", "S"],
+            ["I", "J", "L", "T"],
+        ]
+        for group in groups where group.contains(letter) {
+            return group.filter { $0 != letter }
+        }
+        return []
+    }
+
     // MARK: - Game logic
 
     func selectLetter(_ letter: Character) {
@@ -404,15 +481,38 @@ struct ABCGameView: View {
         }
     }
 
+    /// Speaks the current quiz prompt (sound + word to find). Shared by the
+    /// round start, the "Hear again" replay button, and the wrong-answer retry
+    /// so a pre-reader can always recover the target by ear.
+    func speakQuizPrompt() {
+        guard let quiz = quizLetter, let info = letterData[quiz] else { return }
+        // Carry the difficulty in audio: the sound is spoken so the round still
+        // works once the printed word/emoji are hidden at high levels.
+        SpeechHelper.speak("Which letter says '\(info.phonics)'? Find the start of \(info.word)")
+    }
+
     func newQuizRound() {
         quizShowResult = nil
-        quizLetter = letters.randomElement()
-        guard let quiz = quizLetter else { return }
+        missRecordedThisRound = false
+        // Never the same letter twice in a row.
+        guard let quiz = letters.filter({ $0 != quizLetter }).randomElement() else { return }
+        quizLetter = quiz
 
-        // Progressive: more options at higher levels (4 → 5 → 6)
-        let optionCount = min(6, 4 + progression.level / 3)
+        // Progressive: more options at higher levels, felt sooner (3 → 4 → 5 → 6)
+        let optionCount = min(6, 3 + progression.level / 2)
 
         var opts: [Character] = [quiz]
+
+        // From level 3, fill distractor slots preferentially from letters that
+        // are easy to confuse with the target before falling back to random, so
+        // extra options mean harder discrimination — not just more buttons a
+        // child can rule out at a glance.
+        if progression.level >= 3 {
+            for candidate in confusableLetters(for: quiz).shuffled() where opts.count < optionCount {
+                if !opts.contains(candidate) { opts.append(candidate) }
+            }
+        }
+
         while opts.count < optionCount {
             if let random = letters.randomElement(), !opts.contains(random) {
                 opts.append(random)
@@ -420,9 +520,7 @@ struct ABCGameView: View {
         }
         quizOptions = opts.shuffled()
 
-        if let info = letterData[quiz] {
-            SpeechHelper.speak("Which letter does \(info.word) start with?")
-        }
+        speakQuizPrompt()
     }
 
     func checkQuizAnswer(_ answer: Character) {
@@ -430,19 +528,29 @@ struct ABCGameView: View {
             quizScore += 1
             StarBank.shared.award(1, to: theme.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
+            showConfetti = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { showConfetti = false }
             withAnimation(.spring()) {
                 quizStreak += 1
                 quizShowResult = true
             }
-            if progression.showLevelUp {
-                SoundEngine.shared.play(.streak)
-            } else if quizStreak > 0, quizStreak % 5 == 0 {
+
+            // The streak bonus is computed independently of the level-up so a
+            // 5-in-a-row that lands on the same answer as a level-up still
+            // awards its bonus star and cheer instead of being swallowed by the
+            // else-if chain.
+            let hitStreakMilestone = quizStreak > 0 && quizStreak % 5 == 0
+            if hitStreakMilestone {
                 StarBank.shared.award(1, to: theme.key)
                 quizScore += 1
-                SoundEngine.shared.play(.streak)
                 SpeechHelper.cheer("\(quizStreak) in a row!")
+            }
+
+            if progression.showLevelUp || hitStreakMilestone {
+                SoundEngine.shared.play(.streak)
             } else if let info = letterData[quizLetter!] {
                 SpeechHelper.speak("\(String(quizLetter!)) is for \(info.word)!")
             }
@@ -450,11 +558,29 @@ struct ABCGameView: View {
             let delay = progression.showLevelUp ? 2.5 : 2.0
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                withAnimation { newQuizRound() }
+                if adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    // Keep the on-screen star chip in sync with the real star
+                    // bank: chest stars are awarded to the bank, so mirror them
+                    // into quizScore too instead of letting the chip drift.
+                    quizScore += adventure.chestStars
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { newQuizRound() }
+                }
             }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            // Count only the first miss of this question; further wrong taps
+            // still get feedback but never inflate misses or misfire step-down.
+            if !missRecordedThisRound {
+                progression.registerWrong()
+                adventure.recordMiss()
+                missRecordedThisRound = true
+            }
             withAnimation(.spring()) {
                 quizStreak = 0
                 quizShowResult = false
@@ -462,6 +588,8 @@ struct ABCGameView: View {
             SpeechHelper.speak("Oops! Try again!")
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation { quizShowResult = nil }
+                // Replay the prompt so a pre-reader recovers the target by ear.
+                speakQuizPrompt()
             }
         }
     }

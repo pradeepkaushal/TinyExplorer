@@ -78,6 +78,24 @@ enum SpeechHelper {
         ClipEngine.shared.stop()
     }
 
+    /// True when a pre-rendered neural clip exists for this exact text.
+    static func hasClip(_ text: String) -> Bool {
+        let hash = SHA256.hash(data: Data(text.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+            .prefix(20)
+        return Bundle.main.url(
+            forResource: String(hash), withExtension: "m4a", subdirectory: "BundledVoice"
+        ) != nil
+    }
+
+    /// Speaks `text` when its neural clip is bundled; otherwise speaks the
+    /// clip-backed `fallback` so the child never hears the robotic live-TTS
+    /// voice. Use for generated sentences whose clip may not exist yet.
+    static func speakPreferringClip(_ text: String, fallback: String) {
+        speak(hasClip(text) ? text : fallback)
+    }
+
     private static func playBundledClip(for text: String, rateJitter: Bool = false) -> Bool {
         let hash = SHA256.hash(data: Data(text.utf8))
             .map { String(format: "%02x", $0) }

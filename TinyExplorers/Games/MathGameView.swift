@@ -10,10 +10,13 @@ struct MathGameView: View {
     @State private var totalQuestions = 0
     @State private var streak = 0
     @State private var showResult: Bool? = nil
-    @State private var difficulty: MathDifficulty = .easy
     @State private var bounceAnswer = false
     @State private var idlePulse = false
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.math.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
+    // Remembers the last prompt so the exact same problem never repeats back-to-back.
+    @State private var lastKey = ""
 
     private let hints = [
         "Count on your fingers to help you!",
@@ -62,19 +65,19 @@ struct MathGameView: View {
         let diff = currentDifficulty()
         switch op {
         case .addition, .subtraction:
-            switch difficulty {
+            switch diff {
             case .easy: return 1...5
             case .medium: return 1...10
             case .hard: return 1...50
             }
         case .multiplication:
-            switch difficulty {
+            switch diff {
             case .easy: return 1...5
             case .medium: return 1...10
             case .hard: return 1...12
             }
         case .counting:
-            switch difficulty {
+            switch diff {
             case .easy: return 1...5
             case .medium: return 1...10
             case .hard: return 1...20
@@ -110,6 +113,7 @@ struct MathGameView: View {
                 HStack(spacing: 16) {
                     StarCounterChipEnhanced(count: score)
                     StreakBadgeEnhanced(streak: streak)
+    AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
 
                     if totalQuestions > 0 {
                         Text("\(Int(Double(score) / Double(totalQuestions) * 100))%")
@@ -131,7 +135,7 @@ struct MathGameView: View {
                 }
 
                 // Answer options
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 22), count: 2), spacing: 22) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 22), count: options.count > 4 ? 3 : 2), spacing: 22) {
                     ForEach(Array(options.enumerated()), id: \.element) { index, option in
                         Button(action: { checkAnswer(option) }) {
                             Text("\(option)")
@@ -156,6 +160,13 @@ struct MathGameView: View {
                         }
                         .buttonStyle(SquishyButtonStyle())
                         .disabled(showResult != nil)
+                        // Speaker sits ON TOP of (not inside) the answer button so a pre-reader
+                        // can hear the numeral without selecting it. Placed after .disabled so it
+                        // stays tappable even once an answer has been chosen.
+                        .overlay(alignment: .topTrailing) {
+                            SpeakOptionButton(text: "\(option)", accent: theme.accent)
+                                .padding(6)
+                        }
                         .popIn(delay: Double(index) * 0.04)
                     }
                 }
@@ -192,6 +203,18 @@ struct MathGameView: View {
             if progression.showLevelUp {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
+            }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        generateQuestion()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
             }
         }
         .kidNavigation(title: "Math Fun", theme: theme)
@@ -343,28 +366,37 @@ struct MathGameView: View {
         showResult = nil
         let r = range(for: operation)
 
-        switch operation {
-        case .addition:
-            num1 = Int.random(in: r)
-            num2 = Int.random(in: r)
-            correctAnswer = num1 + num2
+        // Anti-repeat guard: keep re-rolling until the prompt differs from the
+        // last one, so the exact same problem never appears twice in a row —
+        // acute at easy level where the combination space is tiny.
+        var signature = ""
+        repeat {
+            switch operation {
+            case .addition:
+                num1 = Int.random(in: r)
+                num2 = Int.random(in: r)
+                correctAnswer = num1 + num2
 
-        case .subtraction:
-            num1 = Int.random(in: r)
-            num2 = Int.random(in: 1...num1)
-            correctAnswer = num1 - num2
+            case .subtraction:
+                num1 = Int.random(in: r)
+                num2 = Int.random(in: 1...num1)
+                correctAnswer = num1 - num2
 
-        case .multiplication:
-            num1 = Int.random(in: r)
-            num2 = Int.random(in: r)
-            correctAnswer = num1 * num2
+            case .multiplication:
+                num1 = Int.random(in: r)
+                num2 = Int.random(in: r)
+                correctAnswer = num1 * num2
 
-        case .counting:
-            num1 = Int.random(in: r)
-            correctAnswer = num1
-        }
+            case .counting:
+                num1 = Int.random(in: r)
+                correctAnswer = num1
+            }
+            signature = "\(operation.rawValue)-\(num1)-\(num2)"
+        } while signature == lastKey
+        lastKey = signature
 
-        // Generate 4 options including the correct answer
+        // Options: both the count and the distractor spread scale with level.
+        let target = optionTarget()
         var opts = Set<Int>()
         opts.insert(correctAnswer)
         let offsets: [Int]
@@ -372,15 +404,62 @@ struct MathGameView: View {
             // Near-miss table values make better distractors
             offsets = [num1, -num1, num2, -num2, num1 * 2, 1, -1, 2]
         } else {
-            offsets = [-3, -2, -1, 1, 2, 3]
+            offsets = distractorOffsets()
         }
-        while opts.count < 4 {
-            let candidate = max(0, correctAnswer + (offsets.randomElement() ?? 1))
+        // Safety-capped so a near-zero answer (few valid distractors) can never hang.
+        var attempts = 0
+        while opts.count < target && attempts < 60 {
+            attempts += 1
+            let raw = correctAnswer + (offsets.randomElement() ?? 1)
+            let candidate: Int
+            if operation == .counting {
+                // Never offer 0 (or negative) apples when apples are on screen.
+                candidate = raw
+                if candidate < 1 { continue }
+            } else {
+                candidate = max(0, raw)
+            }
             if candidate != correctAnswer {
                 opts.insert(candidate)
             }
         }
         options = Array(opts).shuffled()
+
+        // Voice the prompt so a pre-reader hears the question, not just numerals.
+        speakPrompt()
+    }
+
+    /// Number of answer choices: more options at higher levels.
+    private func optionTarget() -> Int {
+        switch currentDifficulty() {
+        case .easy, .medium: return 4
+        case .hard: return 6
+        }
+    }
+
+    /// Distractor offsets tighten as level rises: easy avoids off-by-one
+    /// near-misses (wide, easy to tell apart); harder levels include them.
+    private func distractorOffsets() -> [Int] {
+        switch currentDifficulty() {
+        case .easy: return [-4, -3, -2, 2, 3, 4]
+        case .medium: return [-3, -2, -1, 1, 2, 3]
+        case .hard: return [-3, -2, -1, 1, 2, 3]
+        }
+    }
+
+    /// Spoken form of the current problem for pre-readers.
+    private func spokenPrompt() -> String {
+        switch operation {
+        case .addition: return "\(num1) plus \(num2)?"
+        case .subtraction: return "\(num1) minus \(num2)?"
+        case .multiplication: return "\(num1) times \(num2)?"
+        case .counting: return "How many apples?"
+        }
+    }
+
+    private func speakPrompt() {
+        let prompt = spokenPrompt()
+        SpeechHelper.speakPreferringClip(prompt, fallback: prompt)
     }
 
     func checkAnswer(_ answer: Int) {
@@ -390,6 +469,7 @@ struct MathGameView: View {
             score += 1
             StarBank.shared.award(1, to: theme.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.correct)
             withAnimation {
@@ -412,11 +492,20 @@ struct MathGameView: View {
             let delay = progression.showLevelUp ? 2.5 : 1.3
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 progression.clearLevelUp()
-                withAnimation { generateQuestion() }
+                if adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                        showAdventureComplete = true
+                    }
+                } else {
+                    withAnimation { generateQuestion() }
+                }
             }
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            progression.registerWrong()
+            adventure.recordMiss()
             withAnimation {
                 streak = 0
                 showResult = false

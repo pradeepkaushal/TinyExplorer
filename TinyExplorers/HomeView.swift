@@ -35,6 +35,7 @@ struct HomeView: View {
             GameItem(title: "Odd One Out", lesson: "Spot the different one", emoji: "🔍", theme: .oddOneOut, destination: AnyView(OddOneOutGameView())),
         ]),
         GameSection(title: "Create & Play", emoji: "🎨", items: [
+            GameItem(title: "Story Land", lesson: "Imagine & create", emoji: "🪄", theme: .imagine, destination: AnyView(ImaginationGameView())),
             GameItem(title: "Drawing Fun", lesson: "Draw & color", emoji: "🎨", theme: .drawing, destination: AnyView(DrawingGameView())),
             GameItem(title: "Music Maker", lesson: "Make melodies", emoji: "🎵", theme: .music, destination: AnyView(MusicGameView())),
         ]),
@@ -529,6 +530,16 @@ struct GameCard: View {
                     )
                     .offset(x: 38, y: -38)
                 }
+
+                // Mastery medal — bronze at 10, silver at 25, gold at 50 stars,
+                // so a "finished" game keeps rewarding return visits.
+                if let medal = StarBadge.medal(for: stars) {
+                    Text(medal)
+                        .font(.system(size: 32))
+                        .shadow(color: .black.opacity(0.18), radius: 2, y: 1)
+                        .offset(x: -40, y: -40)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
 
             // Title — big and bold
@@ -601,29 +612,125 @@ struct GameCard: View {
 // MARK: - Sky scene background
 
 struct SkyScene: View {
+    @ObservedObject private var starBank = StarBank.shared
+
+    /// The home world visibly grows with the kid's global level: a bright day
+    /// sky warms into golden hour, then deepens into a twinkling, magical night
+    /// — a tangible reward that the place itself is levelling up with them.
+    private var level: Int { LevelSystem.level(for: starBank.total) }
+
+    private var skyColors: [Color] {
+        switch level {
+        case 1...2:  // bright day
+            return [
+                Color(red: 0.55, green: 0.82, blue: 1.0),
+                Color(red: 0.75, green: 0.90, blue: 1.0),
+                Color(red: 0.92, green: 0.96, blue: 1.0),
+                Color(red: 0.99, green: 0.97, blue: 0.88),
+            ]
+        case 3...4:  // lush afternoon
+            return [
+                Color(red: 0.42, green: 0.78, blue: 1.0),
+                Color(red: 0.66, green: 0.90, blue: 0.98),
+                Color(red: 0.88, green: 0.97, blue: 0.90),
+                Color(red: 1.0, green: 0.98, blue: 0.80),
+            ]
+        case 5...6:  // golden hour
+            return [
+                Color(red: 0.40, green: 0.66, blue: 0.96),
+                Color(red: 0.76, green: 0.80, blue: 0.98),
+                Color(red: 1.0, green: 0.88, blue: 0.70),
+                Color(red: 1.0, green: 0.80, blue: 0.58),
+            ]
+        case 7...9:  // twilight
+            return [
+                Color(red: 0.22, green: 0.28, blue: 0.58),
+                Color(red: 0.42, green: 0.40, blue: 0.70),
+                Color(red: 0.68, green: 0.54, blue: 0.74),
+                Color(red: 0.96, green: 0.70, blue: 0.58),
+            ]
+        default:     // magical night (10+)
+            return [
+                Color(red: 0.16, green: 0.16, blue: 0.42),
+                Color(red: 0.22, green: 0.18, blue: 0.48),
+                Color(red: 0.30, green: 0.20, blue: 0.52),
+                Color(red: 0.44, green: 0.26, blue: 0.56),
+            ]
+        }
+    }
+
+    private var floaters: [String] {
+        switch level {
+        case 1...2:  return ["🦋", "⭐", "🌸", "🌈"]
+        case 3...4:  return ["🦋", "⭐", "🌸", "🌈", "🌼", "🐝"]
+        case 5...6:  return ["🦋", "🌻", "🐦", "🌈", "🌼", "🐝"]
+        case 7...9:  return ["✨", "⭐", "🌟", "🦋", "💫"]
+        default:     return ["🌟", "✨", "💫", "⭐", "🪐"]
+        }
+    }
+
+    private var isNight: Bool { level >= 7 }
+
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.55, green: 0.82, blue: 1.0),
-                    Color(red: 0.75, green: 0.9, blue: 1.0),
-                    Color(red: 0.92, green: 0.96, blue: 1.0),
-                    Color(red: 0.99, green: 0.97, blue: 0.88),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            LinearGradient(colors: skyColors, startPoint: .top, endPoint: .bottom)
+
+            if isNight {
+                StarfieldLayer(dense: level >= 10)
+            }
 
             RainbowArc()
+                .opacity(isNight ? 0.45 : 1.0)
 
             DriftingClouds()
+                .opacity(isNight ? 0.3 : 1.0)
 
-            RollingHills()
+            RollingHills(lush: level >= 3)
 
-            FloatingEmojiLayer(emoji: ["🦋", "⭐", "🌸", "🌈"])
+            FloatingEmojiLayer(emoji: floaters)
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 1.2), value: level)
+    }
+}
+
+/// Twinkling stars (and a moon at the highest tier) for the night-time home
+/// sky. Positions are deterministic so the field is stable between frames.
+struct StarfieldLayer: View {
+    var dense: Bool = false
+    @State private var twinkle = false
+
+    private var count: Int { dense ? 42 : 24 }
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(0..<count, id: \.self) { i in
+                    Circle()
+                        .fill(.white)
+                        .frame(width: CGFloat(2 + i % 3), height: CGFloat(2 + i % 3))
+                        .position(
+                            x: geo.size.width * CGFloat(i * 61 % 100) / 100.0,
+                            y: geo.size.height * 0.62 * CGFloat(i * 37 % 100) / 100.0
+                        )
+                        .opacity(twinkle ? 0.95 : 0.28)
+                        .animation(
+                            .easeInOut(duration: 1.4 + Double(i % 5) * 0.3)
+                                .repeatForever(autoreverses: true),
+                            value: twinkle
+                        )
+                }
+
+                if dense {
+                    Text("🌙")
+                        .font(.system(size: 56))
+                        .position(x: geo.size.width * 0.82, y: geo.size.height * 0.13)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .onAppear { twinkle = true }
     }
 }
 
@@ -870,6 +977,8 @@ struct DriftingClouds: View {
 }
 
 struct RollingHills: View {
+    var lush: Bool = false
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
@@ -901,6 +1010,21 @@ struct RollingHills: View {
                     Text("🌲").font(.system(size: 42)).opacity(0.45)
                 }
                 .position(x: geo.size.width * 0.5, y: geo.size.height - 30)
+
+                // As the world levels up the meadow fills in with more flowers
+                // and friendly critters near the hilltops.
+                if lush {
+                    HStack(spacing: 54) {
+                        Text("🌼").font(.system(size: 22)).opacity(0.6)
+                        Text("🐰").font(.system(size: 26)).opacity(0.55)
+                        Text("🌷").font(.system(size: 20)).opacity(0.6)
+                        Text("🍄").font(.system(size: 22)).opacity(0.55)
+                        Text("🌻").font(.system(size: 24)).opacity(0.6)
+                        Text("🦔").font(.system(size: 24)).opacity(0.5)
+                    }
+                    .position(x: geo.size.width * 0.5, y: geo.size.height - 76)
+                    .transition(.opacity)
+                }
             }
         }
     }

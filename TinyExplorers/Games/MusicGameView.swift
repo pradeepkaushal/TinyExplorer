@@ -46,6 +46,8 @@ struct MusicGameView: View {
     @State private var recording: [RecordedTap] = []
     @State private var isRecording = false
     @State private var hasAwardedForRecording = false
+    /// Drives the red "recording" pulse so the state is unmistakable.
+    @State private var recordPulse = false
     @State private var tappedNote: Int? = nil
     @State private var tappedBar: Int? = nil
     /// Global tap counter so each instrument tap walks through its pattern
@@ -55,7 +57,7 @@ struct MusicGameView: View {
     @State private var noteSway = false
     /// Bumped on every key/bar tap so the glow flourish retriggers.
     @State private var flourishTick = 0
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.music.key)
 
     private let hints = [
         "Tap instruments to hear their sound!",
@@ -133,47 +135,53 @@ struct MusicGameView: View {
         VStack(spacing: 18) {
             MascotBubble(theme: theme, text: "Tap instruments to make music!")
 
-            // Recording controls
-            HStack(spacing: 16) {
-                Button(action: {
-                    Haptics.tap()
-                    SoundEngine.shared.play(.tap)
-                    if isRecording {
-                        isRecording = false
-                    } else {
-                        recording.removeAll()
-                        hasAwardedForRecording = false
-                        isRecording = true
+            // Recording controls — one obvious Record button, one obvious Play button.
+            HStack(spacing: 18) {
+                Button(action: toggleRecording) {
+                    HStack(spacing: 10) {
+                        Image(systemName: isRecording ? "stop.fill" : "record.circle.fill")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.red)
+                        Text(isRecording ? "Stop" : "Record")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
                     }
-                }) {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(isRecording ? Color.red : Color.gray)
-                            .frame(width: 16, height: 16)
-                        Text(isRecording ? "Stop Recording" : "Record")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(.white.opacity(0.85)))
+                    .frame(minWidth: 150, minHeight: 64)
+                    .padding(.horizontal, 24)
+                    .background(
+                        Capsule()
+                            .fill(isRecording ? Color.red.opacity(0.16) : .white.opacity(0.9))
+                            .overlay(
+                                Capsule().stroke(Color.red.opacity(isRecording ? 0.9 : 0.4),
+                                                 lineWidth: isRecording ? 4 : 3)
+                            )
+                    )
+                    .scaleEffect(recordPulse ? 1.05 : 1.0)
+                    .animation(isRecording
+                               ? .easeInOut(duration: 0.6).repeatForever(autoreverses: true)
+                               : .default,
+                               value: recordPulse)
                 }
                 .buttonStyle(SquishyButtonStyle())
 
                 if !recording.isEmpty && !isRecording {
                     Button(action: playRecording) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 10) {
                             Image(systemName: "play.fill")
-                            Text("Play Back")
+                                .font(.system(size: 24, weight: .bold))
+                            Text("Play")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
                         }
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
+                        .frame(minWidth: 130, minHeight: 64)
+                        .padding(.horizontal, 24)
                         .background(Capsule().fill(GameTheme.music.accent))
                     }
                     .buttonStyle(SquishyButtonStyle())
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
+            .animation(.spring(response: 0.35), value: isRecording)
 
             Spacer(minLength: 4)
 
@@ -482,6 +490,23 @@ struct MusicGameView: View {
         SoundEngine.shared.playNote(midi: xylophoneBars[index].midi, timbre: .chime, duration: 1.0, volume: 0.8)
     }
 
+    /// Single, obvious toggle: start a fresh recording, or stop and let them
+    /// play it back right away. Never dead-ends.
+    private func toggleRecording() {
+        Haptics.tap()
+        if isRecording {
+            SoundEngine.shared.play(.pop)
+            isRecording = false
+            recordPulse = false
+        } else {
+            SoundEngine.shared.play(.tap)
+            recording.removeAll()
+            hasAwardedForRecording = false
+            isRecording = true
+            recordPulse = true
+        }
+    }
+
     func playRecording() {
         Haptics.tap()
         SoundEngine.shared.play(.pop)
@@ -494,14 +519,20 @@ struct MusicGameView: View {
                 }
             }
         }
-        // Finishing a real little song (4+ notes) earns a star, once per recording.
+        // Every playback celebrates: a real little song (4+ notes) earns a star,
+        // and a shorter one still gets a happy cheer — there's no way to "fail".
+        let finish = Double(recording.count) * 0.45 + 0.3
         if recording.count >= 4 && !hasAwardedForRecording {
             hasAwardedForRecording = true
-            let finish = Double(recording.count) * 0.45 + 0.3
             DispatchQueue.main.asyncAfter(deadline: .now() + finish) {
                 StarBank.shared.award(1, to: GameTheme.music.key)
                 progression.registerCorrect()
                 SoundEngine.shared.play(.win)
+                Haptics.success()
+            }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + finish) {
+                SoundEngine.shared.play(.sparkle)
                 Haptics.success()
             }
         }

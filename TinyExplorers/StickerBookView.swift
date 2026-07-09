@@ -80,9 +80,11 @@ struct StickerBookView: View {
     }
 
     private func packSection(_ pack: StickerPack) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let level = LevelSystem.level(for: starBank.total)
+        let gateOpen = pack.isUnlocked(atLevel: level)
+        return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Text(pack.emoji).font(.system(size: 28))
+                Text(gateOpen ? pack.emoji : "🔒").font(.system(size: 28))
                 Text(pack.title)
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .foregroundStyle(
@@ -91,42 +93,81 @@ struct StickerBookView: View {
                             startPoint: .leading, endPoint: .trailing
                         )
                     )
+                    .opacity(gateOpen ? 1 : 0.6)
                 Spacer()
-                let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
-                Text("\(packUnlocked)/\(pack.stickers.count)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(pack.accent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(pack.accent.opacity(0.12)))
-            }
-
-            let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
-            XPProgressBar(
-                progress: Double(packUnlocked) / Double(pack.stickers.count),
-                height: 8,
-                showLabel: false,
-                accent: pack.accent
-            )
-
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 130, maximum: 180), spacing: 14)],
-                spacing: 14
-            ) {
-                ForEach(Array(pack.stickers.enumerated()), id: \.element.id) { index, sticker in
-                    StickerTile(
-                        sticker: sticker,
-                        accent: pack.accent,
-                        unlocked: album.isUnlocked(sticker),
-                        affordable: starBank.available >= sticker.cost,
-                        wobbling: wobbling == sticker.id
-                    ) {
-                        tap(sticker)
-                    }
-                    .popIn(delay: Double(index) * 0.05)
+                if gateOpen {
+                    let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
+                    Text("\(packUnlocked)/\(pack.stickers.count)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(pack.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(pack.accent.opacity(0.12)))
+                } else {
+                    Text("Level \(pack.unlockLevel)")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(pack.accent.opacity(0.85)))
                 }
             }
+
+            if gateOpen {
+                let packUnlocked = pack.stickers.filter { album.isUnlocked($0) }.count
+                XPProgressBar(
+                    progress: Double(packUnlocked) / Double(pack.stickers.count),
+                    height: 8,
+                    showLabel: false,
+                    accent: pack.accent
+                )
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 130, maximum: 180), spacing: 14)],
+                    spacing: 14
+                ) {
+                    ForEach(Array(pack.stickers.enumerated()), id: \.element.id) { index, sticker in
+                        StickerTile(
+                            sticker: sticker,
+                            accent: pack.accent,
+                            unlocked: album.isUnlocked(sticker),
+                            affordable: starBank.available >= sticker.cost,
+                            wobbling: wobbling == sticker.id
+                        ) {
+                            tap(sticker)
+                        }
+                        .popIn(delay: Double(index) * 0.05)
+                    }
+                }
+            } else {
+                lockedPackTeaser(pack)
+            }
         }
+    }
+
+    /// Silhouette preview shown for a pack the kid hasn't reached yet — the
+    /// mystery of what's inside is the pull to keep earning stars.
+    private func lockedPackTeaser(_ pack: StickerPack) -> some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 14) {
+                ForEach(pack.stickers.prefix(6)) { _ in
+                    ZStack {
+                        Circle().fill(Color.gray.opacity(0.12)).frame(width: 58, height: 58)
+                        Text("❓").font(.system(size: 26)).opacity(0.45)
+                    }
+                }
+            }
+            Text("Reach Level \(pack.unlockLevel) to open this pack!")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(pack.accent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .background(RoundedRectangle(cornerRadius: 20).fill(pack.accent.opacity(0.06)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(pack.accent.opacity(0.25), style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+        )
     }
 
     private func tap(_ sticker: Sticker) {
@@ -152,7 +193,7 @@ struct StickerBookView: View {
             let missing = sticker.cost - starBank.available
             Haptics.error()
             SoundEngine.shared.play(.wrong)
-            SpeechHelper.speak("Earn \(missing) more stars to get this one!")
+            SpeechHelper.speak("Earn \(missing) more \(missing == 1 ? "star" : "stars") to get this one!")
             withAnimation(.default) { wobbling = sticker.id }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 wobbling = nil
@@ -268,7 +309,10 @@ private struct StickerTile: View {
 /// Full-screen friendly sheet where the kid picks their explorer buddy.
 struct BuddyPickerView: View {
     @ObservedObject private var profile = Profile.shared
+    @ObservedObject private var starBank = StarBank.shared
     @Environment(\.dismiss) private var dismiss
+
+    private var level: Int { LevelSystem.level(for: starBank.total) }
 
     var body: some View {
         ZStack {
@@ -296,7 +340,11 @@ struct BuddyPickerView: View {
                     spacing: 16
                 ) {
                     ForEach(Array(Buddy.all.enumerated()), id: \.element.id) { index, buddy in
-                        BuddyTile(buddy: buddy, selected: profile.buddyID == buddy.id) {
+                        BuddyTile(
+                            buddy: buddy,
+                            selected: profile.buddyID == buddy.id,
+                            locked: !buddy.isUnlocked(atLevel: level)
+                        ) {
                             choose(buddy)
                         }
                         .popIn(delay: Double(index) * 0.05)
@@ -311,6 +359,14 @@ struct BuddyPickerView: View {
     }
 
     private func choose(_ buddy: Buddy) {
+        // Locked buddies aren't choosable yet — nudge toward the unlock goal
+        // instead of a dead tap.
+        guard buddy.isUnlocked(atLevel: level) else {
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            SpeechHelper.speak("Reach level \(buddy.unlockLevel) to meet \(buddy.name)!")
+            return
+        }
         Haptics.success()
         SoundEngine.shared.play(.correct)
         SpeechHelper.cheer(buddy.hello)
@@ -326,6 +382,7 @@ struct BuddyPickerView: View {
 private struct BuddyTile: View {
     let buddy: Buddy
     let selected: Bool
+    var locked: Bool = false
     let action: () -> Void
 
     @State private var glowPulse = false
@@ -349,13 +406,19 @@ private struct BuddyTile: View {
                         .frame(width: 80, height: 80)
                     Text(buddy.emoji)
                         .font(.system(size: 64))
+                        .grayscale(locked ? 1 : 0)
+                        .opacity(locked ? 0.45 : 1)
+                    if locked {
+                        Text("🔒").font(.system(size: 30))
+                            .offset(x: 22, y: 22)
+                    }
                 }
 
-                Text(buddy.name)
+                Text(locked ? "Level \(buddy.unlockLevel)" : buddy.name)
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color(red: 0.2, green: 0.25, blue: 0.4))
+                    .foregroundColor(locked ? Color(red: 0.5, green: 0.5, blue: 0.6) : Color(red: 0.2, green: 0.25, blue: 0.4))
 
-                if selected {
+                if selected && !locked {
                     HStack(spacing: 4) {
                         Text("✨")
                             .font(.system(size: 12))

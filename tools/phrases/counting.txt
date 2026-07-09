@@ -1,0 +1,726 @@
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+107
+108
+109
+110
+111
+112
+113
+117
+118
+119
+120
+121
+122
+123
+130
+140
+150
+10 comes next!
+10 is bigger!
+10!
+100 comes next!
+100 is bigger!
+100!
+11 is bigger!
+110 comes next!
+110!
+12 comes next!
+12 is bigger!
+12!
+120 comes next!
+120!
+13 is bigger!
+14 comes next!
+14 is bigger!
+14!
+15 comes next!
+15 is bigger!
+15!
+16 comes next!
+16 is bigger!
+16!
+17 is bigger!
+18 comes next!
+18 is bigger!
+18!
+19 is bigger!
+2 is bigger!
+20 comes next!
+20 is bigger!
+20!
+21 is bigger!
+22 comes next!
+22 is bigger!
+22!
+23 is bigger!
+24 comes next!
+24 is bigger!
+24!
+25 comes next!
+25 is bigger!
+25!
+26 is bigger!
+27 is bigger!
+28 is bigger!
+29 is bigger!
+3 is bigger!
+30 comes next!
+30 is bigger!
+30!
+31 is bigger!
+32 is bigger!
+33 is bigger!
+34 is bigger!
+35 comes next!
+35 is bigger!
+35!
+36 is bigger!
+37 is bigger!
+38 is bigger!
+39 is bigger!
+4 comes next!
+4 is bigger!
+4!
+40 comes next!
+40 is bigger!
+40!
+41 is bigger!
+42 is bigger!
+43 is bigger!
+44 is bigger!
+45 comes next!
+45 is bigger!
+45!
+46 is bigger!
+47 is bigger!
+48 is bigger!
+49 is bigger!
+5 is bigger!
+50 comes next!
+50 is bigger!
+50!
+51 is bigger!
+52 is bigger!
+53 is bigger!
+54 is bigger!
+55 comes next!
+55 is bigger!
+55!
+56 is bigger!
+57 is bigger!
+58 is bigger!
+59 is bigger!
+6 comes next!
+6 is bigger!
+6!
+60 comes next!
+60 is bigger!
+60!
+61 is bigger!
+62 is bigger!
+63 is bigger!
+64 is bigger!
+65 is bigger!
+66 is bigger!
+67 is bigger!
+68 is bigger!
+69 is bigger!
+7 is bigger!
+70 comes next!
+70 is bigger!
+70!
+71 is bigger!
+72 is bigger!
+73 is bigger!
+74 is bigger!
+75 is bigger!
+76 is bigger!
+77 is bigger!
+78 is bigger!
+79 is bigger!
+8 comes next!
+8 is bigger!
+8!
+80 comes next!
+80 is bigger!
+80!
+81 is bigger!
+82 is bigger!
+83 is bigger!
+84 is bigger!
+85 is bigger!
+86 is bigger!
+87 is bigger!
+88 is bigger!
+89 is bigger!
+9 is bigger!
+90 comes next!
+90 is bigger!
+90!
+91 is bigger!
+92 is bigger!
+93 is bigger!
+94 is bigger!
+95 is bigger!
+96 is bigger!
+97 is bigger!
+98 is bigger!
+99 is bigger!
+Count by 10s! What comes after 10?
+Count by 10s! What comes after 20?
+Count by 10s! What comes after 30?
+Count by 2s! What comes after 2?
+Count by 2s! What comes after 4?
+Count by 2s! What comes after 6?
+Count by 5s! What comes after 10?
+Count by 5s! What comes after 15?
+Count by 5s! What comes after 5?
+Eight!
+Eighteen!
+Eleven!
+Fifteen!
+Find number 1!
+Find number 10!
+Find number 11!
+Find number 12!
+Find number 13!
+Find number 14!
+Find number 15!
+Find number 16!
+Find number 17!
+Find number 18!
+Find number 19!
+Find number 2!
+Find number 20!
+Find number 21!
+Find number 22!
+Find number 23!
+Find number 24!
+Find number 25!
+Find number 26!
+Find number 27!
+Find number 28!
+Find number 29!
+Find number 3!
+Find number 30!
+Find number 31!
+Find number 32!
+Find number 33!
+Find number 34!
+Find number 35!
+Find number 36!
+Find number 37!
+Find number 38!
+Find number 39!
+Find number 4!
+Find number 40!
+Find number 41!
+Find number 42!
+Find number 43!
+Find number 44!
+Find number 45!
+Find number 46!
+Find number 47!
+Find number 48!
+Find number 49!
+Find number 5!
+Find number 50!
+Find number 6!
+Find number 7!
+Find number 8!
+Find number 9!
+Five!
+Four!
+Fourteen!
+Nine!
+Nineteen!
+One!
+Seven!
+Seventeen!
+Six!
+Sixteen!
+Tap number 1 first!
+Ten!
+The answer is 1
+The answer is 10
+The answer is 11
+The answer is 12
+The answer is 13
+The answer is 14
+The answer is 15
+The answer is 16
+The answer is 17
+The answer is 18
+The answer is 19
+The answer is 2
+The answer is 20
+The answer is 21
+The answer is 22
+The answer is 23
+The answer is 24
+The answer is 25
+The answer is 26
+The answer is 27
+The answer is 28
+The answer is 29
+The answer is 3
+The answer is 30
+The answer is 31
+The answer is 32
+The answer is 33
+The answer is 34
+The answer is 35
+The answer is 36
+The answer is 37
+The answer is 38
+The answer is 39
+The answer is 4
+The answer is 40
+The answer is 41
+The answer is 42
+The answer is 43
+The answer is 44
+The answer is 45
+The answer is 46
+The answer is 47
+The answer is 48
+The answer is 49
+The answer is 5
+The answer is 50
+The answer is 6
+The answer is 7
+The answer is 8
+The answer is 9
+Thirteen!
+Three!
+Twelve!
+Twenty!
+Two!
+What comes after 10?
+What comes after 11?
+What comes after 12?
+What comes after 13?
+What comes after 14?
+What comes after 15?
+What comes after 16?
+What comes after 17?
+What comes after 18?
+What comes after 19?
+What comes after 1?
+What comes after 20?
+What comes after 21?
+What comes after 22?
+What comes after 23?
+What comes after 24?
+What comes after 25?
+What comes after 26?
+What comes after 27?
+What comes after 28?
+What comes after 29?
+What comes after 2?
+What comes after 30?
+What comes after 31?
+What comes after 32?
+What comes after 33?
+What comes after 34?
+What comes after 35?
+What comes after 36?
+What comes after 37?
+What comes after 38?
+What comes after 39?
+What comes after 3?
+What comes after 40?
+What comes after 41?
+What comes after 42?
+What comes after 43?
+What comes after 44?
+What comes after 45?
+What comes after 46?
+What comes after 47?
+What comes after 48?
+What comes after 49?
+What comes after 4?
+What comes after 5?
+What comes after 6?
+What comes after 7?
+What comes after 8?
+What comes after 9?
+What comes before 10?
+What comes before 11?
+What comes before 12?
+What comes before 13?
+What comes before 14?
+What comes before 15?
+What comes before 16?
+What comes before 17?
+What comes before 18?
+What comes before 19?
+What comes before 20?
+What comes before 21?
+What comes before 22?
+What comes before 23?
+What comes before 24?
+What comes before 25?
+What comes before 26?
+What comes before 27?
+What comes before 28?
+What comes before 29?
+What comes before 2?
+What comes before 30?
+What comes before 31?
+What comes before 32?
+What comes before 33?
+What comes before 34?
+What comes before 35?
+What comes before 36?
+What comes before 37?
+What comes before 38?
+What comes before 39?
+What comes before 3?
+What comes before 40?
+What comes before 41?
+What comes before 42?
+What comes before 43?
+What comes before 44?
+What comes before 45?
+What comes before 46?
+What comes before 47?
+What comes before 48?
+What comes before 49?
+What comes before 4?
+What comes before 50?
+What comes before 5?
+What comes before 6?
+What comes before 7?
+What comes before 8?
+What comes before 9?
+What goes between 1 and 3?
+What goes between 10 and 12?
+What goes between 11 and 13?
+What goes between 12 and 14?
+What goes between 13 and 15?
+What goes between 14 and 16?
+What goes between 15 and 17?
+What goes between 16 and 18?
+What goes between 17 and 19?
+What goes between 18 and 20?
+What goes between 19 and 21?
+What goes between 2 and 4?
+What goes between 20 and 22?
+What goes between 21 and 23?
+What goes between 22 and 24?
+What goes between 23 and 25?
+What goes between 24 and 26?
+What goes between 25 and 27?
+What goes between 26 and 28?
+What goes between 27 and 29?
+What goes between 28 and 30?
+What goes between 29 and 31?
+What goes between 3 and 5?
+What goes between 30 and 32?
+What goes between 31 and 33?
+What goes between 32 and 34?
+What goes between 33 and 35?
+What goes between 34 and 36?
+What goes between 35 and 37?
+What goes between 36 and 38?
+What goes between 37 and 39?
+What goes between 38 and 40?
+What goes between 39 and 41?
+What goes between 4 and 6?
+What goes between 40 and 42?
+What goes between 41 and 43?
+What goes between 42 and 44?
+What goes between 43 and 45?
+What goes between 44 and 46?
+What goes between 45 and 47?
+What goes between 46 and 48?
+What goes between 47 and 49?
+What goes between 48 and 50?
+What goes between 5 and 7?
+What goes between 6 and 8?
+What goes between 7 and 9?
+What goes between 8 and 10?
+What goes between 9 and 11?
+Which is bigger?
+Yes! 10 is bigger!
+Yes! 100 is bigger!
+Yes! 11 is bigger!
+Yes! 12 is bigger!
+Yes! 13 is bigger!
+Yes! 14 is bigger!
+Yes! 15 is bigger!
+Yes! 16 is bigger!
+Yes! 17 is bigger!
+Yes! 18 is bigger!
+Yes! 19 is bigger!
+Yes! 2 is bigger!
+Yes! 20 is bigger!
+Yes! 21 is bigger!
+Yes! 22 is bigger!
+Yes! 23 is bigger!
+Yes! 24 is bigger!
+Yes! 25 is bigger!
+Yes! 26 is bigger!
+Yes! 27 is bigger!
+Yes! 28 is bigger!
+Yes! 29 is bigger!
+Yes! 3 is bigger!
+Yes! 30 is bigger!
+Yes! 31 is bigger!
+Yes! 32 is bigger!
+Yes! 33 is bigger!
+Yes! 34 is bigger!
+Yes! 35 is bigger!
+Yes! 36 is bigger!
+Yes! 37 is bigger!
+Yes! 38 is bigger!
+Yes! 39 is bigger!
+Yes! 4 is bigger!
+Yes! 40 is bigger!
+Yes! 41 is bigger!
+Yes! 42 is bigger!
+Yes! 43 is bigger!
+Yes! 44 is bigger!
+Yes! 45 is bigger!
+Yes! 46 is bigger!
+Yes! 47 is bigger!
+Yes! 48 is bigger!
+Yes! 49 is bigger!
+Yes! 5 is bigger!
+Yes! 50 is bigger!
+Yes! 51 is bigger!
+Yes! 52 is bigger!
+Yes! 53 is bigger!
+Yes! 54 is bigger!
+Yes! 55 is bigger!
+Yes! 56 is bigger!
+Yes! 57 is bigger!
+Yes! 58 is bigger!
+Yes! 59 is bigger!
+Yes! 6 is bigger!
+Yes! 60 is bigger!
+Yes! 61 is bigger!
+Yes! 62 is bigger!
+Yes! 63 is bigger!
+Yes! 64 is bigger!
+Yes! 65 is bigger!
+Yes! 66 is bigger!
+Yes! 67 is bigger!
+Yes! 68 is bigger!
+Yes! 69 is bigger!
+Yes! 7 is bigger!
+Yes! 70 is bigger!
+Yes! 71 is bigger!
+Yes! 72 is bigger!
+Yes! 73 is bigger!
+Yes! 74 is bigger!
+Yes! 75 is bigger!
+Yes! 76 is bigger!
+Yes! 77 is bigger!
+Yes! 78 is bigger!
+Yes! 79 is bigger!
+Yes! 8 is bigger!
+Yes! 80 is bigger!
+Yes! 81 is bigger!
+Yes! 82 is bigger!
+Yes! 83 is bigger!
+Yes! 84 is bigger!
+Yes! 85 is bigger!
+Yes! 86 is bigger!
+Yes! 87 is bigger!
+Yes! 88 is bigger!
+Yes! 89 is bigger!
+Yes! 9 is bigger!
+Yes! 90 is bigger!
+Yes! 91 is bigger!
+Yes! 92 is bigger!
+Yes! 93 is bigger!
+Yes! 94 is bigger!
+Yes! 95 is bigger!
+Yes! 96 is bigger!
+Yes! 97 is bigger!
+Yes! 98 is bigger!
+Yes! 99 is bigger!
+Yes, 1!
+Yes, 10!
+Yes, 11!
+Yes, 12!
+Yes, 13!
+Yes, 14!
+Yes, 15!
+Yes, 16!
+Yes, 17!
+Yes, 18!
+Yes, 19!
+Yes, 2!
+Yes, 20!
+Yes, 21!
+Yes, 22!
+Yes, 23!
+Yes, 24!
+Yes, 25!
+Yes, 26!
+Yes, 27!
+Yes, 28!
+Yes, 29!
+Yes, 3!
+Yes, 30!
+Yes, 31!
+Yes, 32!
+Yes, 33!
+Yes, 34!
+Yes, 35!
+Yes, 36!
+Yes, 37!
+Yes, 38!
+Yes, 39!
+Yes, 4!
+Yes, 40!
+Yes, 41!
+Yes, 42!
+Yes, 43!
+Yes, 44!
+Yes, 45!
+Yes, 46!
+Yes, 47!
+Yes, 48!
+Yes, 49!
+Yes, 5!
+Yes, 50!
+Yes, 6!
+Yes, 7!
+Yes, 8!
+Yes, 9!
+You counted by 10s!
+You counted by 2s!
+You counted by 5s!
+You counted to 1!
+You counted to 10!
+You counted to 11!
+You counted to 12!
+You counted to 13!
+You counted to 14!
+You counted to 15!
+You counted to 16!
+You counted to 17!
+You counted to 18!
+You counted to 19!
+You counted to 2!
+You counted to 20!
+You counted to 25!
+You counted to 3!
+You counted to 30!
+You counted to 35!
+You counted to 4!
+You counted to 40!
+You counted to 45!
+You counted to 5!
+You counted to 50!
+You counted to 6!
+You counted to 7!
+You counted to 8!
+You counted to 9!

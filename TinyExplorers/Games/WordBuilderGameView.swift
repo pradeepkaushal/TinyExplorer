@@ -46,10 +46,18 @@ struct WordBuilderGameView: View {
     /// Letter bank: the word's letters plus decoys; consumed tiles fade out.
     @State private var bank: [(letter: Character, used: Bool)] = []
     @State private var wobbleIndex: Int? = nil
+    /// Set when a tile was long-pressed to hear it, so the following tap does not also commit it.
+    @State private var heardIndex: Int? = nil
     @State private var celebrating = false
+    /// True once the kid used the Help button on the current word. Help-completed
+    /// words still celebrate, but don't grant a star / level / adventure credit,
+    /// so leaning on Help can't inflate difficulty past what the kid can do.
+    @State private var usedHelpThisWord = false
     @State private var score = 0
     @State private var queue: [SpellWord] = []
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.spelling.key)
+    @State private var adventure = Adventure()
+    @State private var adventureDone = false
 
     private let hints = [
         "Tap the letters in order!",
@@ -79,14 +87,23 @@ struct WordBuilderGameView: View {
                 )
                 .padding(.horizontal, 24)
 
+                AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
+                    .padding(.horizontal, 24)
+
                 MascotBubble(theme: theme, text: "Spell \(current.display)!", mascotSize: 50)
 
                 Spacer(minLength: 0)
 
-                Text(current.emoji)
-                    .font(.system(size: 130))
-                    .scaleEffect(celebrating ? 1.25 : 1.0)
-                    .animation(.spring(response: 0.4, dampingFraction: 0.5), value: celebrating)
+                // The picture to spell, with Help right beside it so the "show
+                // me the next letter" action reads as part of the task.
+                HStack(spacing: 22) {
+                    Text(progression.level >= 6 ? "🔤" : current.emoji)
+                        .font(.system(size: 130))
+                        .scaleEffect(celebrating ? 1.25 : 1.0)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.5), value: celebrating)
+
+                    helpButton
+                }
 
                 // Letter slots fill up as the kid taps the right letters.
                 HStack(spacing: 12) {
@@ -115,10 +132,18 @@ struct WordBuilderGameView: View {
 
                 Spacer(minLength: 0)
 
-                // Letter bank
-                HStack(spacing: 14) {
+                // Letter bank — reflows into rows so tiles never clip off-screen at high tile counts.
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 78, maximum: 110), spacing: 12)],
+                    spacing: 12
+                ) {
                     ForEach(Array(bank.enumerated()), id: \.offset) { i, tile in
                         Button {
+                            // A long-press to hear the letter must not also commit it as the answer.
+                            if heardIndex == i {
+                                heardIndex = nil
+                                return
+                            }
                             tapLetter(at: i)
                         } label: {
                             Text(String(tile.letter))
@@ -143,7 +168,19 @@ struct WordBuilderGameView: View {
                                 )
                         }
                         .buttonStyle(SquishyButtonStyle())
-                        .disabled(tile.used || celebrating)
+                        .onLongPressGesture(
+                            minimumDuration: 0.4,
+                            pressing: { isPressing in
+                                // Clear the flag at the start of every fresh touch.
+                                if isPressing { heardIndex = nil }
+                            },
+                            perform: {
+                                Haptics.tap()
+                                SpeechHelper.speak(String(tile.letter))
+                                heardIndex = i
+                            }
+                        )
+                        .disabled(tile.used || celebrating || filledCount >= current.word.count)
                         .popIn(delay: Double(i) * 0.05)
                     }
                 }
@@ -162,10 +199,58 @@ struct WordBuilderGameView: View {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
+
+            if adventureDone {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        adventureDone = false
+                        startRound(newLevel: true)
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .kidNavigation(title: "Spell It!", theme: theme)
-        .onAppear { startRound(newLevel: true) }
+        .onAppear {
+            startRound(newLevel: true)
+            #if DEBUG
+            // `-autohelp` taps the Help button twice for automated screenshots.
+            if ProcessInfo.processInfo.arguments.contains("-autohelp") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { revealNextLetter() }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.7) { revealNextLetter() }
+            }
+            #endif
+        }
         .onDisappear { SpeechHelper.stop() }
+    }
+
+    /// Help button: reveals the next correct letter, one tap at a time. Sits
+    /// beside the picture so it reads as "show me the next letter".
+    private var helpButton: some View {
+        let done = celebrating || filledCount >= current.word.count
+        return Button {
+            revealNextLetter()
+        } label: {
+            VStack(spacing: 3) {
+                Text("💡").font(.system(size: 30))
+                Text("Help")
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .foregroundColor(theme.accent)
+            }
+            .frame(width: 78, height: 78)
+            .background(
+                Circle()
+                    .fill(.white.opacity(0.95))
+                    .shadow(color: theme.accent.opacity(0.3), radius: 5, y: 3)
+            )
+            .overlay(Circle().stroke(theme.accent.opacity(0.45), lineWidth: 2.5))
+        }
+        .buttonStyle(SquishyButtonStyle())
+        .disabled(done)
+        .opacity(done ? 0.4 : 1)
+        .accessibilityLabel(Text("Help"))
     }
 
     /// Auto-scales word difficulty based on progression level.
@@ -181,62 +266,105 @@ struct WordBuilderGameView: View {
 
     private func startRound(newLevel: Bool = false) {
         if newLevel || queue.isEmpty { queue = words.shuffled() }
+        if queue.first?.word == current.word && queue.count > 1 { queue.append(queue.removeFirst()) }
         current = queue.removeFirst()
         filledCount = 0
         celebrating = false
+        heardIndex = nil
+        usedHelpThisWord = false
 
         let decoyPool = "ABCDEFGHIJKLMNOPRSTUW".filter { !current.word.contains($0) }
-        let decoys = Array(decoyPool.shuffled().prefix(3))
+        // Cap total tiles so the reflowing bank stays within a couple of rows and never clips.
+        let decoyCap = max(1, 12 - current.word.count)
+        let decoyCount = min(3 + (progression.level - 1) / 2, decoyPool.count, decoyCap)
+        let decoys = Array(decoyPool.shuffled().prefix(decoyCount))
         bank = (Array(current.word) + decoys).shuffled().map { ($0, false) }
 
         SpeechHelper.speak("Spell \(current.display)!")
     }
 
     private func tapLetter(at index: Int) {
+        guard filledCount < current.word.count else { return }
         let needed = Array(current.word)[filledCount]
         if bank[index].letter == needed {
             Haptics.tap()
-            SoundEngine.shared.playTileNote(filledCount)
-            SpeechHelper.speak(String(needed))
-            bank[index].used = true
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                filledCount += 1
-            }
-            if filledCount == current.word.count {
-                score += 1
-                StarBank.shared.award(1, to: theme.key)
-                progression.registerCorrect()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    Haptics.success()
-                    SoundEngine.shared.play(.win)
-                    if !progression.showLevelUp {
-                        SpeechHelper.cheer(current.spelled)
-                    }
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                        celebrating = true
-                    }
-                    let delay = progression.showLevelUp ? 2.5 : 2.4
-                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                        progression.clearLevelUp()
-                        // If leveled up, switch to harder words
-                        let currentWord = current.word
-                        if progression.level <= 2 && !Self.easyWords.contains(where: { $0.word == currentWord }) {
-                            queue = Self.easyWords.shuffled()
-                        } else if progression.level > 2 && progression.level <= 5 && !Self.mediumWords.contains(where: { $0.word == currentWord }) {
-                            queue = Self.mediumWords.shuffled()
-                        } else if progression.level > 5 && !Self.hardWords.contains(where: { $0.word == currentWord }) {
-                            queue = Self.hardWords.shuffled()
-                        }
-                        withAnimation { startRound() }
-                    }
-                }
-            }
+            placeLetter(fromBankIndex: index)
         } else {
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            progression.registerWrong()
+            adventure.recordMiss()
+            SpeechHelper.speak(String(bank[index].letter))
             withAnimation { wobbleIndex = index }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 wobbleIndex = nil
+            }
+        }
+    }
+
+    /// Help button: reveals the next correct letter, exactly one per tap. Finds
+    /// the matching unused tile in the bank so the same fill/celebration path
+    /// runs as a real tap — just flagged so it grants no reward.
+    private func revealNextLetter() {
+        guard !celebrating, filledCount < current.word.count else { return }
+        let needed = Array(current.word)[filledCount]
+        guard let idx = bank.firstIndex(where: { $0.letter == needed && !$0.used }) else { return }
+        usedHelpThisWord = true
+        Haptics.tap()
+        placeLetter(fromBankIndex: idx)
+    }
+
+    /// Commits the (already-verified-correct) tile at `index` into the next
+    /// slot, then finishes the word when the last slot fills.
+    private func placeLetter(fromBankIndex index: Int) {
+        SoundEngine.shared.playTileNote(filledCount)
+        SpeechHelper.speak(String(Array(current.word)[filledCount]))
+        bank[index].used = true
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            filledCount += 1
+        }
+        if filledCount == current.word.count {
+            finishWord()
+        }
+    }
+
+    private func finishWord() {
+        // Reward only self-spelled words; Help-completed ones still celebrate.
+        let earned = !usedHelpThisWord
+        if earned {
+            score += 1
+            StarBank.shared.award(1, to: theme.key)
+            progression.registerCorrect()
+            adventure.recordCorrect()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Haptics.success()
+            SoundEngine.shared.play(.win)
+            if !progression.showLevelUp {
+                SpeechHelper.cheer(current.spelled)
+            }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                celebrating = true
+            }
+            let delay = progression.showLevelUp ? 2.5 : 2.4
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                progression.clearLevelUp()
+                if earned && adventure.isComplete {
+                    StarBank.shared.award(adventure.chestStars, to: theme.key)
+                    withAnimation { adventureDone = true }
+                    return
+                }
+                // If leveled up, switch to harder words
+                let currentWord = current.word
+                if progression.level <= 2 && !Self.easyWords.contains(where: { $0.word == currentWord }) {
+                    queue = Self.easyWords.shuffled()
+                } else if progression.level > 2 && progression.level <= 5 && !Self.mediumWords.contains(where: { $0.word == currentWord }) {
+                    queue = Self.mediumWords.shuffled()
+                } else if progression.level > 5 && !Self.hardWords.contains(where: { $0.word == currentWord }) {
+                    queue = Self.hardWords.shuffled()
+                }
+                if queue.first?.word == currentWord && queue.count > 1 { queue.append(queue.removeFirst()) }
+                withAnimation { startRound() }
             }
         }
     }

@@ -1,7 +1,66 @@
 import SwiftUI
 
-struct OddOneOutRound: Identifiable {
-    let id = UUID()
+/// A themed pool of items the generator draws from. Every emoji appears in
+/// exactly one category so a generated round can never be ambiguous.
+struct OddCategory {
+    let name: String       // chip label, e.g. "Fruits"
+    let singular: String   // for explanations, e.g. "fruit"
+    let items: [(emoji: String, name: String)]
+
+    static let all: [OddCategory] = [
+        OddCategory(name: "Fruits", singular: "fruit", items: [
+            ("🍎", "apple"), ("🍊", "orange"), ("🍋", "lemon"), ("🍓", "strawberry"),
+            ("🍇", "grapes"), ("🍌", "banana"), ("🍉", "watermelon"), ("🍑", "peach"),
+        ]),
+        OddCategory(name: "Animals", singular: "animal", items: [
+            ("🐶", "dog"), ("🐱", "cat"), ("🐸", "frog"), ("🐰", "bunny"),
+            ("🐻", "bear"), ("🐮", "cow"), ("🐷", "pig"), ("🦁", "lion"),
+        ]),
+        OddCategory(name: "Vehicles", singular: "vehicle", items: [
+            ("🚗", "car"), ("🚌", "bus"), ("🚂", "train"), ("✈️", "plane"),
+            ("🚁", "helicopter"), ("🚜", "tractor"), ("🛵", "scooter"),
+        ]),
+        OddCategory(name: "Flowers", singular: "flower", items: [
+            ("🌸", "blossom"), ("🌻", "sunflower"), ("🌺", "hibiscus"),
+            ("🌷", "tulip"), ("🌹", "rose"),
+        ]),
+        OddCategory(name: "Sky Things", singular: "sky thing", items: [
+            ("☀️", "sun"), ("🌙", "moon"), ("⭐", "star"), ("☁️", "cloud"), ("🌈", "rainbow"),
+        ]),
+        OddCategory(name: "Sea Friends", singular: "sea friend", items: [
+            ("🐟", "fish"), ("🐬", "dolphin"), ("🐙", "octopus"),
+            ("🦀", "crab"), ("🐳", "whale"), ("🐚", "seashell"),
+        ]),
+        OddCategory(name: "Sweet Treats", singular: "sweet treat", items: [
+            ("🍦", "ice cream"), ("🧁", "cupcake"), ("🍰", "cake"),
+            ("🍭", "lollipop"), ("🍩", "donut"), ("🍪", "cookie"),
+        ]),
+        OddCategory(name: "Vegetables", singular: "vegetable", items: [
+            ("🥦", "broccoli"), ("🥕", "carrot"), ("🌽", "corn"),
+            ("🍅", "tomato"), ("🥒", "cucumber"),
+        ]),
+        OddCategory(name: "Clothes", singular: "piece of clothing", items: [
+            ("👟", "sneaker"), ("🧢", "cap"), ("🧤", "glove"),
+            ("🧦", "sock"), ("👗", "dress"), ("🧥", "coat"),
+        ]),
+        OddCategory(name: "Instruments", singular: "instrument", items: [
+            ("🎹", "piano"), ("🎸", "guitar"), ("🎺", "trumpet"),
+            ("🥁", "drum"), ("🎻", "violin"),
+        ]),
+        OddCategory(name: "Little Bugs", singular: "bug", items: [
+            ("🐝", "bee"), ("🐞", "ladybug"), ("🦋", "butterfly"),
+            ("🐛", "caterpillar"), ("🐜", "ant"),
+        ]),
+        OddCategory(name: "Sports Balls", singular: "ball", items: [
+            ("⚽", "soccer ball"), ("🏀", "basketball"), ("🎾", "tennis ball"), ("⚾", "baseball"),
+        ]),
+        OddCategory(name: "Yummy Food", singular: "food", items: [
+            ("🍕", "pizza"), ("🍔", "burger"), ("🌮", "taco"), ("🥪", "sandwich"), ("🍝", "spaghetti"),
+        ]),
+    ]
+}
+
+struct OddOneOutRound {
     let items: [String]
     let oddIndex: Int
     let category: String
@@ -9,52 +68,20 @@ struct OddOneOutRound: Identifiable {
 }
 
 struct OddOneOutGameView: View {
-    let rounds: [OddOneOutRound] = [
-        OddOneOutRound(items: ["🍎", "🍊", "🍋", "🐶"], oddIndex: 3, category: "Fruits",
-                       explanation: "The dog is not a fruit!"),
-        OddOneOutRound(items: ["🐱", "🐶", "🐸", "🚗"], oddIndex: 3, category: "Animals",
-                       explanation: "The car is not an animal!"),
-        OddOneOutRound(items: ["🔴", "🔵", "🟢", "⭐"], oddIndex: 3, category: "Circles",
-                       explanation: "The star is not a circle!"),
-        OddOneOutRound(items: ["✈️", "🚁", "🚀", "🐟"], oddIndex: 3, category: "Flying",
-                       explanation: "The fish doesn't fly!"),
-        OddOneOutRound(items: ["🌧️", "☀️", "❄️", "🍕"], oddIndex: 3, category: "Weather",
-                       explanation: "Pizza is not weather!"),
-        OddOneOutRound(items: ["👟", "🥾", "👢", "🎩"], oddIndex: 3, category: "Shoes",
-                       explanation: "The hat is not a shoe!"),
-        OddOneOutRound(items: ["🎹", "🎸", "🎺", "🍎"], oddIndex: 3, category: "Instruments",
-                       explanation: "An apple is not a musical instrument!"),
-        OddOneOutRound(items: ["🌸", "🌻", "🌺", "🐛"], oddIndex: 3, category: "Flowers",
-                       explanation: "The bug is not a flower!"),
-        OddOneOutRound(items: ["2", "4", "6", "3"], oddIndex: 3, category: "Even Numbers",
-                       explanation: "3 is odd, the others are even!"),
-        OddOneOutRound(items: ["🐘", "🐋", "🦒", "🐜"], oddIndex: 3, category: "Big Animals",
-                       explanation: "The ant is tiny compared to the others!"),
-        OddOneOutRound(items: ["🍦", "🧁", "🍰", "🥦"], oddIndex: 3, category: "Sweet Treats",
-                       explanation: "Broccoli is a vegetable, not a sweet treat!"),
-        OddOneOutRound(items: ["🌙", "⭐", "☀️", "🌊"], oddIndex: 3, category: "Sky Things",
-                       explanation: "Waves are in the ocean, not the sky!"),
-        OddOneOutRound(items: ["🚗", "🚌", "🚂", "🍌"], oddIndex: 3, category: "Vehicles",
-                       explanation: "A banana is not a vehicle!"),
-        OddOneOutRound(items: ["A", "B", "C", "3"], oddIndex: 3, category: "Letters",
-                       explanation: "3 is a number, not a letter!"),
-        OddOneOutRound(items: ["👀", "👃", "👂", "🦶"], oddIndex: 3, category: "Face Parts",
-                       explanation: "A foot is not on your face!"),
-        OddOneOutRound(items: ["❄️", "⛄", "🧊", "🔥"], oddIndex: 3, category: "Cold Things",
-                       explanation: "Fire is hot, not cold!"),
-    ]
-
-    @State private var shuffledRounds: [OddOneOutRound] = []
-    @State private var currentRoundIndex = 0
+    @State private var currentRound = OddOneOutRound(items: [], oddIndex: 0, category: "", explanation: "")
+    @State private var lastCategoryName = ""
     @State private var score = 0
     @State private var streak = 0
     @State private var totalAttempts = 0
     @State private var tappedIndex: Int? = nil
     @State private var showResult: Bool? = nil
     @State private var showExplanation = false
+    @State private var missedOnce = false
     @State private var shuffledItems: [(item: String, originalIndex: Int)] = []
     @State private var roundNumber = 0
-    @State private var progression = GameProgression()
+    @State private var progression = GameProgression(key: GameTheme.oddOneOut.key)
+    @State private var adventure = Adventure()
+    @State private var showAdventureComplete = false
 
     private let hints = [
         "Find the one that doesn't belong!",
@@ -65,10 +92,18 @@ struct OddOneOutGameView: View {
 
     private let theme = GameTheme.oddOneOut
 
-    var currentRound: OddOneOutRound {
-        guard !shuffledRounds.isEmpty else { return rounds[0] }
-        return shuffledRounds[currentRoundIndex % shuffledRounds.count]
+    /// More cards to scan as the kid levels: 3 at L1-2, 4 at L3-5, 5 at L6+.
+    private var itemCount: Int {
+        switch progression.level {
+        case 1...2: return 3
+        case 3...5: return 4
+        default: return 5
+        }
     }
+
+    /// Cards shrink a little when five are on screen so they still fit.
+    private var cardSize: CGFloat { shuffledItems.count >= 5 ? 140 : 185 }
+    private var cardSpacing: CGFloat { shuffledItems.count >= 5 ? 20 : 26 }
 
     var body: some View {
         ZStack {
@@ -79,6 +114,7 @@ struct OddOneOutGameView: View {
                 HStack(spacing: 14) {
                     StarCounterChipEnhanced(count: score)
                     StreakBadgeEnhanced(streak: streak)
+                    AdventureTrail(progress: adventure.completedInRound, goal: adventure.goal, theme: theme)
 
                     Spacer()
 
@@ -115,14 +151,14 @@ struct OddOneOutGameView: View {
                     MascotBubble(theme: theme, text: "Find the odd one out!\nWhich one doesn't belong?")
 
                     // Items grid
-                    HStack(spacing: 26) {
+                    HStack(spacing: cardSpacing) {
                         ForEach(Array(shuffledItems.enumerated()), id: \.offset) { displayIndex, entry in
                             Button(action: {
                                 checkAnswer(originalIndex: entry.originalIndex, displayIndex: displayIndex)
                             }) {
                                 Text(entry.item)
-                                    .font(.system(size: 96))
-                                    .frame(width: 185, height: 185)
+                                    .font(.system(size: cardSize * 0.52))
+                                    .frame(width: cardSize, height: cardSize)
                                     .background(
                                         RoundedRectangle(cornerRadius: 24)
                                             .fill(cardColor(displayIndex: displayIndex, originalIndex: entry.originalIndex))
@@ -153,7 +189,7 @@ struct OddOneOutGameView: View {
                     Group {
                         if let result = showResult {
                             VStack(spacing: 12) {
-                                Text(result ? "Correct!" : "Not quite!")
+                                Text(result ? "Correct!" : (showExplanation ? "Here it is!" : "Look again!"))
                                     .font(.system(size: 32, weight: .heavy, design: .rounded))
                                     .foregroundColor(result ? .green : .orange)
 
@@ -216,12 +252,21 @@ struct OddOneOutGameView: View {
                 LevelUpOverlay(level: progression.level, theme: theme)
                     .transition(.scale.combined(with: .opacity))
             }
+
+            if showAdventureComplete {
+                AdventureCompleteOverlay(stars: adventure.chestStars, theme: theme) {
+                    adventure.reset()
+                    withAnimation {
+                        showAdventureComplete = false
+                        setupRound()
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .zIndex(20)
+            }
         }
         .kidNavigation(title: "Odd One Out", theme: theme)
-        .onAppear {
-            shuffledRounds = rounds.shuffled()
-            setupRound()
-        }
+        .onAppear { setupRound() }
         .onDisappear { SpeechHelper.stop() }
     }
 
@@ -230,14 +275,39 @@ struct OddOneOutGameView: View {
             return .white.opacity(0.92)
         }
         if originalIndex == currentRound.oddIndex {
-            return result ? Color.green.opacity(0.3) : Color.red.opacity(0.2)
+            // Highlight the odd card on a win or on the final reveal —
+            // not on a first miss, so the retry stays a real challenge.
+            return (result || showExplanation) ? Color.green.opacity(0.3) : .white.opacity(0.5)
         }
         return .white.opacity(0.5)
     }
 
+    /// Generates a fresh round: N-1 items from one category plus one
+    /// intruder from another. Categories rotate so no two consecutive
+    /// rounds share a base.
+    func makeRound() -> OddOneOutRound {
+        let bases = OddCategory.all.filter { $0.name != lastCategoryName && $0.items.count >= itemCount - 1 }
+        let base = bases.randomElement() ?? OddCategory.all[0]
+        let odd = OddCategory.all.filter { $0.name != base.name }.randomElement() ?? OddCategory.all[1]
+        lastCategoryName = base.name
+
+        let baseItems = base.items.shuffled().prefix(itemCount - 1)
+        let intruder = odd.items.randomElement()!
+        let items = baseItems.map(\.emoji) + [intruder.emoji]
+        let article = "aeiou".contains(base.singular.first ?? " ") ? "an" : "a"
+        return OddOneOutRound(
+            items: items,
+            oddIndex: items.count - 1,
+            category: base.name,
+            explanation: "The \(intruder.name) is not \(article) \(base.singular)!"
+        )
+    }
+
     func setupRound() {
+        currentRound = makeRound()
         showResult = nil
         showExplanation = false
+        missedOnce = false
         tappedIndex = nil
         roundNumber += 1
         shuffledItems = currentRound.items.enumerated().map { (item: $1, originalIndex: $0) }.shuffled()
@@ -253,6 +323,7 @@ struct OddOneOutGameView: View {
         if originalIndex == currentRound.oddIndex {
             StarBank.shared.award(1, to: GameTheme.oddOneOut.key)
             progression.registerCorrect()
+            adventure.recordCorrect()
             Haptics.success()
             SoundEngine.shared.play(.win)
             withAnimation {
@@ -267,33 +338,53 @@ struct OddOneOutGameView: View {
                 SoundEngine.shared.play(.streak)
             }
             if !progression.showLevelUp {
-                SpeechHelper.speak(currentRound.explanation)
+                SpeechHelper.speakPreferringClip(currentRound.explanation, fallback: "You did it!")
             }
-        } else {
+            withAnimation(.easeIn.delay(0.5)) {
+                showExplanation = true
+            }
+            totalAttempts += 1
+        } else if !missedOnce {
+            // First miss: a warm nudge and a real second chance.
+            missedOnce = true
             Haptics.error()
             SoundEngine.shared.play(.wrong)
+            progression.registerWrong()
+            withAnimation { showResult = false }
+            streak = 0
+            SpeechHelper.speak("Oops! Try again!")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation {
+                    showResult = nil
+                    tappedIndex = nil
+                }
+            }
+        } else {
+            // Second miss: reveal the answer kindly and move on.
+            Haptics.error()
+            SoundEngine.shared.play(.wrong)
+            progression.registerWrong()
+            adventure.recordMiss()
             withAnimation {
                 showResult = false
-                streak = 0
+                showExplanation = true
             }
-            SpeechHelper.speak("Try again!")
+            SpeechHelper.speakPreferringClip(currentRound.explanation, fallback: "Oops! Try again!")
+            totalAttempts += 1
         }
-
-        withAnimation(.easeIn.delay(0.5)) {
-            showExplanation = true
-        }
-        totalAttempts += 1
     }
 
     func nextRound() {
-        withAnimation {
-            currentRoundIndex += 1
-            if currentRoundIndex >= shuffledRounds.count {
-                shuffledRounds = rounds.shuffled()
-                currentRoundIndex = 0
+        // Five correct spots complete an adventure: the chest pops with a
+        // bonus instead of silently rolling into the next round.
+        if adventure.isComplete {
+            StarBank.shared.award(adventure.chestStars, to: GameTheme.oddOneOut.key)
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+                showAdventureComplete = true
             }
-            setupRound()
+            return
         }
+        withAnimation { setupRound() }
     }
 }
 
